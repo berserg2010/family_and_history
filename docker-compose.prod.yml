@@ -1,0 +1,63 @@
+version: '3.8'
+
+services:
+
+  backend:
+    environment:
+      - DJANGO_DEBUG=0
+      - HOST=0.0.0.0
+    ports:
+      - 8000
+    volumes:
+      - static_volume:/usr/src/fah/backend/static
+      - media_volume:/usr/src/fah/backend/media
+    user: root
+    networks:
+      - proxy_back
+    command:
+      [ "gunicorn", "--bind", ":8000", "backend.wsgi:application" ]
+
+  frontend:
+    environment:
+      - NODE_ENV=production
+      - HOST=0.0.0.0
+    ports:
+      - 3000
+    networks:
+      - proxy_front
+    command:
+      [ "npm", "run", "start" ]
+
+  proxy_back:
+    image: nginx:1.17
+    ports:
+      - 8080:80
+    volumes:
+      - ./proxy/backend.conf:/etc/nginx/conf.d/backend.conf
+      - static_volume:/usr/src/fah/backend/static
+      - media_volume:/usr/src/fah/backend/media
+    depends_on:
+      - backend
+    networks:
+      - proxy_back
+
+  proxy_front:
+    image: nginx:1.17
+    ports:
+      - 8000:80
+    volumes:
+      - ./proxy/frontend.conf:/etc/nginx/conf.d/frontend.conf
+    depends_on:
+      - frontend
+    networks:
+      - proxy_front
+
+volumes:
+  static_volume:
+  media_volume:
+
+networks:
+  proxy_front:
+    driver: bridge
+  proxy_back:
+    driver: bridge

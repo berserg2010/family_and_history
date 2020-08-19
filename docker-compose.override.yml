@@ -1,0 +1,28 @@
+version: '3.8'
+
+services:
+
+  backend:
+    environment:
+      - DJANGO_DEBUG=1
+    command:
+      [ "python", "manage.py", "runserver", "0.0.0.0:8000" ]
+    ports:
+      - 8080:8000
+    networks:
+      - front_back
+
+  frontend:
+    environment:
+      - NODE_ENV=development
+      - HOST=0.0.0.0
+    ports:
+      - 8000:3000
+    command:
+      [ "npm", "start" ]
+    networks:
+      - front_back
+
+networks:
+  front_back:
+    driver: bridge

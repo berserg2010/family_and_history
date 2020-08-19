@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+
+  db:
+    image: postgres
+    env_file:
+      - env/db.env
+    networks:
+      - db_layer
+
+  backend:
+    build: backend/.
+    env_file:
+      - env/back.env
+      - env/db.env
+    environment:
+      - DJANGO_DEBUG=0
+    volumes:
+      - ./backend:/usr/src/fah/backend
+    depends_on:
+      - db
+    networks:
+      - db_layer
+
+  frontend:
+    build: frontend/.
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+    volumes:
+      - ./frontend:/usr/src/fah
+      - /usr/src/fah/node_modules
+    depends_on:
+      - backend
+
+networks:
+  db_layer:
+    driver: bridge
