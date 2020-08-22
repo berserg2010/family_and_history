@@ -21,10 +21,10 @@ import Link from "@material-ui/core/Link";
 
 import { withSnackbar } from "notistack";
 
-import withSession from "../../CoreApp/withSession";
+import withSession from '../../CoreApp/withSession';
 import {
   TOKEN_AUTH,
-} from "../../queries";
+} from '../../queries';
 
 
 const styles = theme => ({
@@ -92,13 +92,14 @@ class Signin extends Component {
       }
     })
       .then(async ({ data }) => {
-        // console.log("Signin", data);
+//        console.log('Signin', data)
         localStorage.setItem('token', data.tokenAuth.token);
         await this.props.refetch();
         this.clearState();
         this.props.history.push('/');
-      });
-  };
+      })
+      .catch(e => console.log(e))
+  }
 
   validateForm = () => {
     const { email, password } = this.state;

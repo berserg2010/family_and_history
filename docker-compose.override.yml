@@ -19,7 +19,7 @@ services:
     ports:
       - 8000:3000
     command:
-      [ "npm", "start" ]
+      [ "npm", "run", "start" ]
     networks:
       - front_back
 

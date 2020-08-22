@@ -10,13 +10,15 @@ import { InMemoryCache } from "apollo-cache-inmemory";
 
 
 const cache = new InMemoryCache();
+
 const client = new ApolloClient({
-	uri: 'http://127.0.0.1:8000/graphql/',
+	uri: 'http://0.0.0.0:8080/graphql/',
 	cache,
 
-	fetchOptions: {	credentials: 'include' },
+//	fetchOptions: {	credentials: 'include' },
+	fetchOptions: {	credentials: 'same-origin' },
 
-	request: operation => {
+	request: (operation) => {
 		const token = localStorage.getItem('token') || '';
 
 		operation.setContext({

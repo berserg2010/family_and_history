@@ -1,6 +1,6 @@
 import React from 'react';
-import { Redirect } from "react-router-dom";
-import { Query } from "react-apollo";
+import { Redirect } from 'react-router-dom';
+import { Query } from 'react-apollo';
 
 import { CURRENT_USER } from '../queries';
 
@@ -16,7 +16,7 @@ const withAuth = (Component) => (props) => (
 
 			return conditionFunc(data)
 				? <Component { ...props } />
-				: <Redirect to='/signin' />
+				: <Redirect to="/signin" />
 		}}
 	</Query>
 );

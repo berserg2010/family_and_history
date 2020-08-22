@@ -1,7 +1,7 @@
 import React from 'react';
 
 import withAuth from '../CoreApp/withAuth';
-import UserInfo from "./UserInfo";
+import UserInfo from './UserInfo';
 
 
 const Profile = ({ session }) => (

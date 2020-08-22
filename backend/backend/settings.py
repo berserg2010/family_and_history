@@ -14,10 +14,26 @@ DEBUG = os.getenv(
     False
 )
 
+SITE_ID = 1
+
 ALLOWED_HOSTS = [
+    '0.0.0.0',
     'localhost',
     '127.0.0.1',
     '192.168.1.52',
+]
+
+# Corsheaders
+CORS_ALLOW_HEADERS = default_headers + (
+    # 'recent-activity',
+    'contenttype',
+)
+# CORS_ORIGIN_ALLOW_ALL = True
+CORS_ORIGIN_WHITELIST = [
+    'http://0.0.0.0:8000',
+    'http://localhost',
+    'http://127.0.0.1',
+    'http://192.168.1.52',
 ]
 
 INSTALLED_APPS = [
@@ -83,15 +99,7 @@ GRAPHENE = {
 #     'JWT_ALLOW_ARGUMENT': True,
 # }
 
-# Corsheaders
-CORS_ALLOW_HEADERS = default_headers + (
-    'recent-activity',
-)
-CORS_ORIGIN_WHITELIST = [
-    'http://localhost',
-    'http://127.0.0.1',
-    'http://192.168.1.52',
-]
+
 
 # TEMPLATES
 TEMPLATES = [
