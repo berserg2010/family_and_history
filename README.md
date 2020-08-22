@@ -7,7 +7,7 @@ https://docs.docker.com/engine/install/
 ### Предварительная настройка
 
 1. Необходимо инициализировать переменные окружения.
-В папек `env_private/` необходимо скопировать шаблоны, удалив при этом расширение `.template`.
+В папек `env/` необходимо скопировать шаблоны, удалив при этом расширение `.template`.
 
 2. Примеры переменных:
     
@@ -18,22 +18,10 @@ https://docs.docker.com/engine/install/
     - POSTGRES_USER=postgres
     - POSTGRES_PASSWORD=postgres
     
-    `front_dev.env`
-    
-    - NODE_ENV=development
-    - BROWSER_BASE_URL=http://192.168.1.1
-
-    `front_prod.env`
-    
-    - NODE_ENV=production
-    - BROWSER_BASE_URL=http://192.168.1.1
-    
-    `web.env`
+    `back.env.template`
     
     - DJANGO_SECRET_KEY=!6@%ch8p6o#7u!zx&=@s3kejg483y+8%c#fped_d*fb-v&#*45
-    - EMAIL_HOST=smtp.yandex.ru
-    - EMAIL_HOST_USER=`***`@yandex.com
-    - EMAIL_HOST_PASSWORD=`***`
+
 
 3. В файле `backend/backend/settings.py` в списках `ALLOWED_HOSTS` и `CORS_ORIGIN_WHITELIST` указать необходимый хост.
 
