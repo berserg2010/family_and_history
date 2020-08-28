@@ -2,8 +2,6 @@ import pytest
 from django.contrib.auth import get_user_model
 from mixer.backend.django import mixer
 
-from graphql_jwt.testcases import JSONWebTokenClient
-
 from .. import schema
 from . import queries
 
@@ -16,11 +14,14 @@ class TestUser:
         instance = schema.UserType()
         assert instance
 
-    def test_signup_user_and_current_user(self):
-        client = JSONWebTokenClient()
+    def test_signup_user_and_current_user(self, client):
         variable = {'email': 'petrov@gmail.ru', 'password': '1234'}
 
-        result = client.execute(query=queries.SIGNUP_USER, variables=variable)
+        result = client.execute(
+            query=queries.SIGNUP_USER, 
+            variables=variable
+        )
+
         tkn1 = result.data.get('tokenAuth')['token']
         assert not result.errors
 
@@ -43,10 +44,9 @@ class TestUser:
         result = client.execute(queries.CURRENT_USER)
         assert result.data.get('currentUser')['email'] == variable['email']
 
-    def test_resolve_all_users(self):
+    def test_resolve_all_users(self, client):
         mixer.blend(get_user_model())
         mixer.blend(get_user_model())
-        client = JSONWebTokenClient()
 
         result = client.execute(queries.ALL_USER)
         assert len(result.data.get('allUsers')) == 2, 'Should return all users'

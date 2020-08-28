@@ -252,17 +252,19 @@ class BaseClass(ABC):
             assert birth.likes == 1
 
 
+@pytest.mark.usefixtures('client')
 class TestAnonymousClient(BaseClass):
     @classmethod
     def setup(cls):
-        cls.client = JSONWebTokenClient()
+        cls.client = client
         cls.user = AnonymousUser()
 
 
+@pytest.mark.usefixtures('client')
 class TestAuthenticationClient(BaseClass):
     @classmethod
     def setup(cls):
-        cls.client = JSONWebTokenClient()
+        cls.client = client
         cls.user = mixer.blend(get_user_model())
 
         cls.client.authenticate(cls.user)
