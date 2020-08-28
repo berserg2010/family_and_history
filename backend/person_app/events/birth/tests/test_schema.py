@@ -5,8 +5,6 @@ from mixer.backend.django import mixer
 
 from abc import ABC
 
-from graphql_jwt.testcases import JSONWebTokenClient
-
 from .. import schema
 from person_app.models import *
 from . import queries

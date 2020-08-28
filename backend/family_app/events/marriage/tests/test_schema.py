@@ -5,8 +5,6 @@ from mixer.backend.django import mixer
 
 from abc import ABC
 
-from graphql_jwt.testcases import JSONWebTokenClient
-
 from person_app.models import Person
 from family_app.family.models import Family
 from family_app.events.marriage.models import Marriage

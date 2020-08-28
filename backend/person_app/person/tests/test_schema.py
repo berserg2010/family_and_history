@@ -6,8 +6,6 @@ from abc import ABC
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import AnonymousUser
 
-from graphql_jwt.testcases import JSONWebTokenClient
-
 from person_app.person import schema
 from person_app.person.models import Person
 from . import queries
