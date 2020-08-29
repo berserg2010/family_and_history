@@ -1,5 +1,6 @@
 import pytest
 from mixer.backend.django import mixer
+from graphql_jwt.testcases import JSONWebTokenClient
 
 from abc import ABC
 
@@ -11,6 +12,7 @@ from family_app.family.models import Family, Child
 from family_app.events.marriage.models import Marriage
 from family_app.family import schema
 from . import queries
+
 
 pytestmark = pytest.mark.django_db
 
@@ -26,11 +28,13 @@ def test_child_type():
 
 
 class BaseClass(ABC):
+
     def test_all_family(self):
         mixer.blend(Family)
         mixer.blend(Family)
         result = self.client.execute(query=queries.ALL_FAMILY)
         assert len(result.data.get('allFamily')) == 2, 'Should return all family'
+
 
     def test_family(self):
         family = mixer.blend(Family)
@@ -40,6 +44,7 @@ class BaseClass(ABC):
         )
         assert not result.errors
         assert result.data.get('family')['id'] == str(family.pk)
+
 
     def test_save_family_mutation(self):
         note = [[None, ':)'], [1, ':(']]
@@ -67,6 +72,7 @@ class BaseClass(ABC):
                 family = Family.objects.get(pk=family_id)
                 assert family.note == VARIABLE.get('data')['note']
 
+
     def test_delete_family_mutation(self):
         marriage = mixer.blend(Marriage)
         assert Family.objects.all().count() == 1
@@ -88,6 +94,7 @@ class BaseClass(ABC):
             assert Family.objects.all().count() == 0
             assert Marriage.objects.all().count() == 0
 
+
     def test_all_child(self):
         mixer.blend(Child)
         family = mixer.blend(Family)
@@ -104,6 +111,7 @@ class BaseClass(ABC):
         assert not result.errors
         assert len(result.data.get('allChild')) == 2, 'Should return 2 Child'
 
+
     def test_child(self):
         child = mixer.blend(Child)
         result = self.client.execute(
@@ -112,6 +120,7 @@ class BaseClass(ABC):
         )
         assert not result.errors
         assert result.data.get('child')['id'] == str(child.pk)
+
 
     def test_save_child_mutation(self):
         child = mixer.blend(Child)
@@ -158,6 +167,7 @@ class BaseClass(ABC):
                 child = Child.objects.get(pk=id_child)
                 assert child.family.pk == VARIABLE.get('data')['idFamily']
 
+
     def test_delete_child_mutation(self):
         family = mixer.blend(Family)
         birth = mixer.blend(Birth)
@@ -184,19 +194,19 @@ class BaseClass(ABC):
             assert Birth.objects.all().count() == 1
 
 
-@pytest.mark.usefixtures('client')
 class TestAnonymousClient(BaseClass):
+    
     @classmethod
     def setup(cls):
-        cls.client = client
+        cls.client = JSONWebTokenClient()
         cls.user = AnonymousUser()
 
 
-@pytest.mark.usefixtures('client')
 class TestAuthenticationClient(BaseClass):
+
     @classmethod
     def setup(cls):
-        cls.client = client
+        cls.client = JSONWebTokenClient()
         cls.user = mixer.blend(get_user_model())
 
         cls.client.authenticate(cls.user)

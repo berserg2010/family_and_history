@@ -44,8 +44,8 @@ query CurrentUser{
 }
 '''
 
-ALL_USER = '''
-query AllUser{ 
+ALL_USERS = '''
+query AllUsers{ 
     allUsers{
         email
     }

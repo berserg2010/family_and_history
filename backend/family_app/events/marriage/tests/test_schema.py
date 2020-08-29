@@ -2,6 +2,7 @@ import pytest
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import AnonymousUser
 from mixer.backend.django import mixer
+from graphql_jwt.testcases import JSONWebTokenClient
 
 from abc import ABC
 
@@ -223,19 +224,17 @@ class BaseClass(ABC):
             assert marriage.likes == 1
 
 
-@pytest.mark.usefixtures('client')
 class TestAnonymousClient(BaseClass):
     @classmethod
     def setup(cls):
-        cls.client = client
+        cls.client = JSONWebTokenClient()
         cls.user = AnonymousUser()
 
 
-@pytest.mark.usefixtures('client')
 class TestAuthenticationClient(BaseClass):
     @classmethod
     def setup(cls):
-        cls.client = client
+        cls.client = JSONWebTokenClient()
         cls.user = mixer.blend(get_user_model())
 
         cls.client.authenticate(cls.user)

@@ -9,16 +9,19 @@ class UserType(DjangoObjectType):
 
 
 class SignupUserMutation(graphene.Mutation):
+
     first_name = graphene.String()
     last_name = graphene.String()
     email = graphene.String()
     password = graphene.String()
+
 
     class Arguments:
         first_name = graphene.String()
         last_name = graphene.String()
         email = graphene.String(required=True)
         password = graphene.String(required=True)
+
 
     def mutate(self, info, **kwargs):
         user = get_user_model()(
@@ -38,12 +41,14 @@ class SignupUserMutation(graphene.Mutation):
 
 # Output
 class Query(graphene.ObjectType):
+
     all_users = graphene.List(UserType)
     current_user = graphene.Field(UserType)
 
-    # @login_required
+
     def resolve_all_users(self, info):
         return get_user_model().objects.all()
+
 
     def resolve_current_user(self, info, **kwargs):
         user = info.context.user

@@ -61,7 +61,7 @@ class AbstractUser(AbstractBaseUser, PermissionsMixin):
         _('email address'),
         unique=True,
         error_messages={
-            'unique': _("A user with that email address already exists."),
+            'unique': _('A user with that email address already exists.'),
         },
     )
     first_name = models.CharField(

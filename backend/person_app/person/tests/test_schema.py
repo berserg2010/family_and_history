@@ -1,8 +1,7 @@
 import pytest
 from mixer.backend.django import mixer
-
+from graphql_jwt.testcases import JSONWebTokenClient
 from abc import ABC
-
 from django.contrib.auth import get_user_model
 from django.contrib.auth.models import AnonymousUser
 
@@ -20,11 +19,13 @@ def test_person_type():
 
 
 class BaseClass(ABC):
-    def test_all_person(self):
+
+    def test_get_all_persons(self):
         mixer.blend(Person)
         mixer.blend(Person)
         result = self.client.execute(query=queries.ALL_PERSON)
         assert len(result.data.get('allPerson')) == 2, 'Should return all person'
+
 
     def test_person(self):
         person = mixer.blend(Person)
@@ -34,6 +35,7 @@ class BaseClass(ABC):
         )
         assert not result.errors
         assert result.data.get('person')['id'] == str(person.pk)
+
 
     def test_save_person_mutation(self):
         note = [[None, ':)'], [1, ':(']]
@@ -61,6 +63,7 @@ class BaseClass(ABC):
                 person = Person.objects.get(pk=person_id)
                 assert person.note == VARIABLE.get('data')['note']
 
+
     def test_delete_person_mutation(self):
         person = mixer.blend(Person)
 
@@ -80,19 +83,17 @@ class BaseClass(ABC):
             assert result.data.get('deletePerson')['status'] == 200, 'Should return 200 if mutation is successful'
 
 
-@pytest.mark.usefixtures('client')
 class TestAnonymousClient(BaseClass):
     @classmethod
     def setup(cls):
-        cls.client = client
+        cls.client = JSONWebTokenClient()
         cls.user = AnonymousUser()
 
 
-@pytest.mark.usefixtures('client')
 class TestAuthenticationClient(BaseClass):
     @classmethod
     def setup(cls):
-        cls.client = client
+        cls.client = JSONWebTokenClient()
         cls.user = mixer.blend(get_user_model())
 
         cls.client.authenticate(cls.user)
