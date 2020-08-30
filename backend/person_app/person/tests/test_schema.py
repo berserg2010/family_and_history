@@ -18,51 +18,50 @@ def test_person_type():
     assert instance
 
 
-class BaseClass(ABC):
+@pytest.mark.usefixtures('create_superuser')
+class TestPersonAPI:
 
-    def test_get_all_persons(self):
+    def test_get_all_persons(self, client, client_register):
         mixer.blend(Person)
         mixer.blend(Person)
-        result = self.client.execute(query=queries.ALL_PERSON)
-        assert len(result.data.get('allPerson')) == 2, 'Should return all person'
+        result = client.execute(query=queries.ALL_PERSONS)
+        assert result.errors
 
+        result = client_register().execute(query=queries.ALL_PERSONS)
+        assert not result.errors
+        assert len(result.data.get('allPersons')) == 2, 'Should return all persons'
+    
 
-    def test_person(self):
+    def test_get_person(self, client, client_register):
         person = mixer.blend(Person)
-        result = self.client.execute(
-            query=queries.PERSON,
-            variables={'id': person.pk}
-        )
+        result = client.execute(query=queries.PERSON, variables={'id': person.pk})
+        assert result.errors
+        
+        result = client_register().execute(query=queries.PERSON, variables={'id': person.pk})
         assert not result.errors
         assert result.data.get('person')['id'] == str(person.pk)
+    
+
+    @pytest.mark.parametrize('data, correct_value', [
+        ({'data': {'id': 12, 'note': ':('}}, 400),
+        ({'data': {'id': None, 'note': ':)'}}, 201),
+    ])
+    def test_create_person_mutation(self, data, correct_value, client, client_register):
+        result = client.execute(query=queries.CREATE_PERSON, variables=data)
+        assert not result.errors
+        assert result.data.get('createPerson')['status'] == 401
+
+        result = client_register().execute(query=queries.CREATE_PERSON, variables=data)
+        assert not result.errors
+        assert result.data.get('createPerson')['status'] == correct_value
+
+        if result.data.get('createPerson')['status'] == 201:
+            person_id = result.data.get('createPerson')['person']['id']
+            person = Person.objects.get(pk=person_id)
+            assert person.note == data.get('data')['note']
 
 
-    def test_save_person_mutation(self):
-        note = [[None, ':)'], [1, ':(']]
-
-        for i in note:
-            VARIABLE = {
-                "data": {
-                    "id": i[0],
-                    "note": i[1]
-                },
-            }
-
-            result = self.client.execute(
-                query=queries.SAVE_PERSON,
-                variables=VARIABLE,
-            )
-            assert not result.errors
-
-            if not self.user.is_authenticated:
-                assert result.data.get('savePerson')['status'] == 403, 'Should return 403 if user is not logged in'
-            else:
-                assert result.data.get('savePerson')['status'] == 200, 'Should return 200 if mutation is successful'
-                person_id = int(result.data.get('savePerson')['person']['id'])
-                assert person_id == 1, 'Should create new person'
-                person = Person.objects.get(pk=person_id)
-                assert person.note == VARIABLE.get('data')['note']
-
+class BaseClass(ABC):
 
     def test_delete_person_mutation(self):
         person = mixer.blend(Person)

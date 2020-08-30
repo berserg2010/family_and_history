@@ -1,6 +1,8 @@
+from django.contrib.auth import get_user_model
+from django.core.exceptions import ObjectDoesNotExist
 import graphene
 from graphene_django import DjangoObjectType
-from django.contrib.auth import get_user_model
+from graphql_jwt.decorators import login_required
 import json
 
 from .models import Person
@@ -13,12 +15,14 @@ class PersonType(DjangoObjectType):
 
 
 class PersonInput(graphene.InputObjectType):
+
     id = graphene.ID()
     user = graphene.ID()
     note = graphene.String()
 
 
-class SavePersonMutation(graphene.Mutation):
+class CreatePersonMutation(graphene.Mutation):
+
     status = graphene.Int()
     formErrors = graphene.String()
     person = graphene.Field(PersonType)
@@ -28,32 +32,41 @@ class SavePersonMutation(graphene.Mutation):
 
     def mutate(self, info, data=None, **kwargs):
         if not info.context.user.is_authenticated:
-            return SavePersonMutation(status=403)
+            return CreatePersonMutation(status=401)
 
         if info.context.user:
             user = info.context.user
         else:
             user = None
+        
+        person_id = data.get('id', None)
 
-        if data.get('id') and Person.objects.filter(pk=data.get('id')):
-            person = Person.objects.get(pk=data.get('id'))
+        if person_id is not None:
+
+            try:
+                person = Person.objects.get(pk=person_id)
+            except ObjectDoesNotExist:
+                return CreatePersonMutation(status=400)
+
             person.user = data.get('user')  # Написать setter для id
             person.note = data.get('note')
             person.changer = user
             person.save()
+
         else:
             person = Person.objects.create(
                 note=data.get('note'),
                 submitter=user,
             )
 
-        return SavePersonMutation(
-            status=200,
+        return CreatePersonMutation(
+            status=201,
             person=person,
         )
 
 
 class DeletePersonMutation(graphene.Mutation):
+
     status = graphene.Int()
     formErrors = graphene.String()
     id = graphene.ID()
@@ -85,7 +98,7 @@ class DeletePersonMutation(graphene.Mutation):
 
 
 class Query(graphene.ObjectType):
-    all_person = graphene.List(PersonType)
+    all_persons = graphene.List(PersonType)
 
     person = graphene.Field(
         PersonType,
@@ -97,13 +110,17 @@ class Query(graphene.ObjectType):
     #     searchTerm=graphene.String(),
     # )
 
-    # @login_required
-    def resolve_all_person(self, info):
-        return Person.objects.all().order_by('-changed')
 
+    @login_required
+    def resolve_all_persons(self, info):
+        return Person.objects.all().order_by('-changed')
+    
+
+    @login_required
     def resolve_person(self, info, **kwargs):
         id = kwargs.get('id')
         return Person.objects.get(pk=id)
+
 
     # def resolve_search_person(self, info, **kwargs):
     #     return Person.objects.filter(  # Фильтр только по surname_male?
@@ -112,5 +129,5 @@ class Query(graphene.ObjectType):
 
 
 class Mutation(graphene.ObjectType):
-    save_person = SavePersonMutation.Field()
+    create_person = CreatePersonMutation.Field()
     delete_person = DeletePersonMutation.Field()

@@ -24,8 +24,8 @@ def create_user():
 
 
 @pytest.fixture(autouse=True)
-def create_superuser():
-    def _create_superuser(create_user):
+def create_superuser(create_user):
+    def _create_superuser():
         return create_user(root_auth)
     return _create_superuser
 
@@ -36,9 +36,8 @@ def client():
 
 
 @pytest.fixture
-def client_register(client):
-    client.login(
-        username=root_auth.get('email'),
-        password=root_auth.get('password'),
-    )
-    return client
+def client_register(client, create_superuser):
+    def _client_register():
+        client.authenticate(create_superuser())
+        return client
+    return _client_register

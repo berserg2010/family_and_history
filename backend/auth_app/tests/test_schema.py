@@ -30,14 +30,14 @@ class TestUser:
             variables=user
         )
 
-        tkn1 = result.data.get('tokenAuth')['token']
+        token = result.data.get('tokenAuth')['token']
         assert not result.errors
         assert get_user_model().objects.count() == 1, 'Should return ones user'
 
 
         result = client.execute(queries.TOKEN_AUTH, variables=user)
         assert not result.errors
-        assert result.data.get('tokenAuth')['token'] == tkn1
+        assert result.data.get('tokenAuth')['token'] == token
 
         result = client.execute(queries.CURRENT_USER)
         assert result.data.get('currentUser') is None

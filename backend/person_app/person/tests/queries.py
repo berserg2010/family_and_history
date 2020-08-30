@@ -1,7 +1,7 @@
 # PERSON
-ALL_PERSON = '''
-query AllPerson{
-    allPerson{
+ALL_PERSONS = '''
+query AllPersons{
+    allPersons{
         id        
     }
 }
@@ -15,11 +15,11 @@ query Person($id: ID!){
 }
 '''
 
-SAVE_PERSON = '''
+CREATE_PERSON = '''
 mutation CreatePerson(
     $data: PersonInput
 ){
-    savePerson(
+    createPerson(
         data: $data
     ){
         status

@@ -39,7 +39,6 @@ class SignupUserMutation(graphene.Mutation):
         )
 
 
-# Output
 class Query(graphene.ObjectType):
 
     all_users = graphene.List(UserType)
