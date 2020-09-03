@@ -1,5 +1,6 @@
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ObjectDoesNotExist
+from graphql import GraphQLError
 import graphene
 from graphene_django import DjangoObjectType
 from graphql_jwt.decorators import login_required
@@ -23,86 +24,72 @@ class PersonInput(graphene.InputObjectType):
 
 class CreatePersonMutation(graphene.Mutation):
 
-    status = graphene.Int()
-    formErrors = graphene.String()
     person = graphene.Field(PersonType)
 
     class Arguments:
         data = PersonInput()
 
+    @login_required
     def mutate(self, info, data=None, **kwargs):
-        if not info.context.user.is_authenticated:
-            return CreatePersonMutation(status=401)
 
         if info.context.user:
-            user = info.context.user
+            submitter = info.context.user
         else:
-            user = None
+            submitter = None
         
-        person_id = data.get('id', None)
+        person_id = data.get('id')
 
-        if person_id is not None:
-
+        if person_id:
             try:
                 person = Person.objects.get(pk=person_id)
             except ObjectDoesNotExist:
-                return CreatePersonMutation(status=400)
+                raise GraphQLError('Please enter a valid id')
 
-            person.user = data.get('user')  # Написать setter для id
+            person.user = data.get('user')
             person.note = data.get('note')
-            person.changer = user
+            person.changer = submitter
             person.save()
 
         else:
             person = Person.objects.create(
                 note=data.get('note'),
-                submitter=user,
+                submitter=submitter,
             )
 
         return CreatePersonMutation(
-            status=201,
             person=person,
         )
 
 
 class DeletePersonMutation(graphene.Mutation):
 
-    status = graphene.Int()
-    formErrors = graphene.String()
     id = graphene.ID()
 
     class Arguments:
         id = graphene.ID(required=True)
 
+    @login_required
     def mutate(self, info, **kwargs):
-        if not info.context.user.is_authenticated:
-            return DeletePersonMutation(status=403)
 
-        id = kwargs.get('id')
+        person_id = kwargs.get('id')
 
-        if id is None:
-            return DeletePersonMutation(
-                status=400,
-                formErrors=json.dumps(
-                    {'id': ['Please enter an id']}
-                )
-            )
-
-        if Person.objects.filter(pk=id).exists():
-            Person.objects.get(pk=id).delete()
+        try:
+            Person.objects.get(pk=person_id).delete()
+        except ObjectDoesNotExist:
+            raise GraphQLError('Please enter a valid id')
 
         return DeletePersonMutation(
-            status=200,
-            id=id,
+            id=person_id,
         )
 
 
 class Query(graphene.ObjectType):
+
     all_persons = graphene.List(PersonType)
 
     person = graphene.Field(
         PersonType,
-        id=graphene.ID(),
+        id=graphene.ID(required=True),
     )
 
     # search_person = graphene.List(
@@ -118,8 +105,13 @@ class Query(graphene.ObjectType):
 
     @login_required
     def resolve_person(self, info, **kwargs):
-        id = kwargs.get('id')
-        return Person.objects.get(pk=id)
+
+        person_id = kwargs.get('id')
+
+        try:
+            return Person.objects.get(pk=person_id)
+        except ObjectDoesNotExist:
+            raise GraphQLError('Please enter a valid id')
 
 
     # def resolve_search_person(self, info, **kwargs):

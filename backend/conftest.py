@@ -37,7 +37,5 @@ def client():
 
 @pytest.fixture
 def client_register(client, create_superuser):
-    def _client_register():
-        client.authenticate(create_superuser())
-        return client
-    return _client_register
+    client.authenticate(create_superuser())
+    return client

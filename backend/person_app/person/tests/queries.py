@@ -22,8 +22,6 @@ mutation CreatePerson(
     createPerson(
         data: $data
     ){
-        status
-        formErrors
         person{
             id
         }
@@ -34,7 +32,6 @@ mutation CreatePerson(
 DELETE_PERSON = '''
 mutation DeletePerson($id: ID!){
     deletePerson(id: $id){
-        status
         id
     }
 }

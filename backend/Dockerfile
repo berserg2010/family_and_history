@@ -6,7 +6,7 @@ ENV PYTHONUNBUFFERED 1
 
 RUN useradd --no-create-home --system --uid 1000 --user-group node
 
-WORKDIR /usr/src/todo/backend
+WORKDIR /usr/src/fah/backend
 
 COPY --chown=1000:1000 requirements.txt ./requirements.txt
 
