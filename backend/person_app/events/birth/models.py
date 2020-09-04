@@ -20,11 +20,6 @@ class Birth(EventField):
         blank=True,
         null=True,
     )
-    gender = models.CharField(
-        max_length=1,
-        choices=choices.GENDER_CHOICES,
-        default='U',
-    )
     _givname = models.ForeignKey(
         GivName,
         on_delete=models.SET_NULL,
@@ -36,6 +31,11 @@ class Birth(EventField):
         on_delete=models.SET_NULL,
         blank=True,
         null=True,
+    )
+    gender = models.CharField(
+        max_length=1,
+        choices=choices.GENDER_CHOICES,
+        default='U',
     )
 
     @property

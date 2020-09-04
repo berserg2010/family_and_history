@@ -1,6 +1,9 @@
+from django.contrib.auth import get_user_model
+from django.core.exceptions import ObjectDoesNotExist
+from graphql import GraphQLError
 import graphene
 from graphene_django import DjangoObjectType
-from django.contrib.auth import get_user_model
+from graphql_jwt.decorators import login_required
 import json
 
 from .models import Birth
@@ -166,9 +169,10 @@ class LikeBirthMutation(graphene.Mutation):
 
 # Output
 class Query(graphene.ObjectType):
-    all_birth = graphene.List(
+
+    all_births = graphene.List(
         BirthType,
-        idPerson=graphene.ID()
+        personId=graphene.ID()
     )
 
     birth = graphene.Field(
@@ -181,13 +185,23 @@ class Query(graphene.ObjectType):
         searchTerm=graphene.String(),
     )
 
-    # @login_required
-    def resolve_all_birth(self, info, **kwargs):
-        id_person = kwargs.get('idPerson')
-        if id_person:
-            return Birth.objects.filter(_person=id_person).order_by('-changed')
+
+    @login_required
+    def resolve_all_births(self, info, **kwargs):
+        
+        person_id = kwargs.get('personId')
+
+        if person_id:
+            births = Birth.objects.filter(_person=person_id)
+
+            if not births:
+                raise GraphQLError('Please enter a valid id')
+
         else:
-            return Birth.objects.all().order_by('-changed')
+            births = Birth.objects.all()
+        
+        return births.order_by('-changed')
+
 
     def resolve_birth(self, info, **kwargs):
         id = kwargs.get('id')

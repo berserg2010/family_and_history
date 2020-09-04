@@ -4,7 +4,6 @@ from graphql import GraphQLError
 import graphene
 from graphene_django import DjangoObjectType
 from graphql_jwt.decorators import login_required
-import json
 
 from .models import Person
 
@@ -32,12 +31,8 @@ class CreatePersonMutation(graphene.Mutation):
     @login_required
     def mutate(self, info, data=None, **kwargs):
 
-        if info.context.user:
-            submitter = info.context.user
-        else:
-            submitter = None
-        
         person_id = data.get('id')
+        changer_submitter = info.context.user
 
         if person_id:
             try:
@@ -45,16 +40,14 @@ class CreatePersonMutation(graphene.Mutation):
             except ObjectDoesNotExist:
                 raise GraphQLError('Please enter a valid id')
 
-            person.user = data.get('user')
-            person.note = data.get('note')
-            person.changer = submitter
-            person.save()
-
         else:
-            person = Person.objects.create(
-                note=data.get('note'),
-                submitter=submitter,
-            )
+            person = Person()
+            person.submitter = changer_submitter
+
+        person.user = data.get('user')
+        person.note = data.get('note')
+        person.changer = changer_submitter
+        person.save()
 
         return CreatePersonMutation(
             person=person,

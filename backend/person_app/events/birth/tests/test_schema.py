@@ -6,7 +6,7 @@ from graphql_jwt.testcases import JSONWebTokenClient
 from abc import ABC
 
 from .. import schema
-from person_app.models import *
+from person_app.models import Person, Birth
 from . import queries
 
 
@@ -18,23 +18,53 @@ def test_birth_type():
     assert instance
 
 
-class BaseClass(ABC):
-    def test_all_birth(self):
-        mixer.blend(Birth)
-        person = mixer.blend(Person)
-        birth1 = mixer.blend(Birth)
-        birth1.person = person
-        birth1.save()
-        birth2 = mixer.blend(Birth)
-        birth2.person = person
-        birth2.save()
-        result = self.client.execute(query=queries.ALL_BIRTH)
-        assert not result.errors
-        assert len(result.data.get('allBirth')) == 3, 'Should return all birth'
+@pytest.mark.usefixtures('create_superuser')
+class TestBirthAPI:
+    
+    @pytest.mark.parametrize('client_fixture, data, errors', [
+        ('client', None, 'You do not have permission to perform this action'),
+        ('client', {'personId': 21}, 'You do not have permission to perform this action'),
+        ('client', {'personId': 12}, 'You do not have permission to perform this action'),
+        ('client_register', None, None),
+        ('client_register', {'personId': 21}, 'Please enter a valid id'),
+        ('client_register', {'personId': 12}, None),
+    ])
+    def test_get_all_births(self, client_fixture, data, errors, request):
 
-        result = self.client.execute(query=queries.ALL_BIRTH, variables={"idPerson": person.pk})
-        assert not result.errors
-        assert len(result.data.get('allBirth')) == 2, 'Should return 2 births'
+        person = mixer.blend(Person, pk=12)
+        mixer.blend(Birth)
+        mixer.blend(Birth, person=person)
+        mixer.blend(Birth, person=person)
+
+        client = request.getfixturevalue(client_fixture)
+        result = client.execute(query=queries.ALL_BIRTH, variables=data)
+
+        if client_fixture == 'client_register' and (data is None or data.get('personId') == 12):
+            assert not result.errors
+            assert len(result.data.get('allBirths')) == 2 if data else 3
+
+        else:
+            assert result.errors
+            assert len(result.errors) == 1
+            assert result.errors[0].message == errors
+
+class BaseClass(ABC):
+    # def test_all_birth(self):
+    #     mixer.blend(Birth)
+    #     person = mixer.blend(Person)
+    #     birth1 = mixer.blend(Birth)
+    #     birth1.person = person
+    #     birth1.save()
+    #     birth2 = mixer.blend(Birth)
+    #     birth2.person = person
+    #     birth2.save()
+    #     result = self.client.execute(query=queries.ALL_BIRTH)
+    #     assert not result.errors
+    #     assert len(result.data.get('allBirth')) == 3, 'Should return all birth'
+
+    #     result = self.client.execute(query=queries.ALL_BIRTH, variables={"idPerson": person.pk})
+    #     assert not result.errors
+    #     assert len(result.data.get('allBirth')) == 2, 'Should return 2 births'
 
     def test_birth(self):
         birth = mixer.blend(Birth)

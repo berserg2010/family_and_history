@@ -1,7 +1,7 @@
 # BIRTH
 ALL_BIRTH = '''
-query AllBirth($idPerson: ID){
-    allBirth(idPerson: $idPerson){
+query AllBirths($personId: ID){
+    allBirths(personId: $personId){
         id
     }
 }
