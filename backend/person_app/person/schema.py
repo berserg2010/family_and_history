@@ -5,6 +5,7 @@ import graphene
 from graphene_django import DjangoObjectType
 from graphql_jwt.decorators import login_required
 
+from common.schema import DeleteMutation
 from .models import Person
 
 
@@ -54,27 +55,10 @@ class CreatePersonMutation(graphene.Mutation):
         )
 
 
-class DeletePersonMutation(graphene.Mutation):
-
-    id = graphene.ID()
-
-    class Arguments:
-        id = graphene.ID(required=True)
-
-    @login_required
-    def mutate(self, info, **kwargs):
-
-        person_id = kwargs.get('id')
-
-        try:
-            Person.objects.get(pk=person_id).delete()
-        except ObjectDoesNotExist:
-            raise GraphQLError('Please enter a valid id')
-
-        return DeletePersonMutation(
-            id=person_id,
-        )
-
+class DeletePersonMutation(DeleteMutation):
+    
+    obj = Person
+    
 
 class Query(graphene.ObjectType):
 

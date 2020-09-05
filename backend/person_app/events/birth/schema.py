@@ -6,6 +6,7 @@ from graphene_django import DjangoObjectType
 from graphql_jwt.decorators import login_required
 import json
 
+from common.schema import DeleteMutation
 from .models import Birth
 from core.schema import (
     EventFieldType,
@@ -107,35 +108,9 @@ class SaveBirthMutation(graphene.Mutation):
         )
 
 
-class DeleteBirthMutation(graphene.Mutation):
-    status = graphene.Int()
-    formErrors = graphene.String()
-    id = graphene.ID()
+class DeleteBirthMutation(DeleteMutation):
 
-    class Arguments:
-        id = graphene.ID(required=True)
-
-    def mutate(self, info, **kwargs):
-        if not info.context.user.is_authenticated:
-            return DeleteBirthMutation(status=403)
-
-        id = kwargs.get('id')
-
-        if id is None:
-            return DeleteBirthMutation(
-                status=400,
-                formErrors=json.dumps(
-                    {'id': ['Please enter an id']}
-                )
-            )
-
-        if Birth.objects.filter(pk=id).exists():
-            Birth.objects.get(pk=id).delete()
-
-        return DeleteBirthMutation(
-            status=200,
-            id=id,
-        )
+    obj = Birth
 
 
 class LikeBirthMutation(graphene.Mutation):
@@ -177,7 +152,7 @@ class Query(graphene.ObjectType):
 
     birth = graphene.Field(
         BirthType,
-        id=graphene.ID(),
+        id=graphene.ID(required=True),
     )
 
     search_birth = graphene.List(
@@ -203,9 +178,16 @@ class Query(graphene.ObjectType):
         return births.order_by('-changed')
 
 
+    @login_required
     def resolve_birth(self, info, **kwargs):
-        id = kwargs.get('id')
-        return Birth.objects.get(pk=id)
+
+        birth_id = kwargs.get('id')
+
+        try:
+            return Birth.objects.get(pk=birth_id)
+        except ObjectDoesNotExist:
+            raise GraphQLError('Please enter a valid id')
+
 
     def resolve_search_birth(self, info, **kwargs):
         return Birth.objects.filter(  # Фильтр только по surname_male?

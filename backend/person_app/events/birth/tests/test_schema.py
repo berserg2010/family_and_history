@@ -13,6 +13,16 @@ from . import queries
 pytestmark = pytest.mark.django_db
 
 
+check_data = [
+    ('client', {'id': None}, 'Variable "$id" of required type "ID!" was not provided.'),
+    ('client', {'id': 21}, 'You do not have permission to perform this action'),
+    ('client', {'id': 12}, 'You do not have permission to perform this action'),
+    ('client_register', {'id': None}, 'Variable "$id" of required type "ID!" was not provided.'),
+    ('client_register', {'id': 21}, 'Please enter a valid id'),
+    ('client_register', {'id': 12}, None),
+]
+
+
 def test_birth_type():
     instance = schema.BirthType()
     assert instance
@@ -47,33 +57,27 @@ class TestBirthAPI:
             assert result.errors
             assert len(result.errors) == 1
             assert result.errors[0].message == errors
+    
+
+    @pytest.mark.parametrize('schema, query', [('BIRTH', 'birth'), ('DELETE_BIRTH', 'deleteBirth')])
+    @pytest.mark.parametrize('client_fixture, data, errors', check_data)
+    def test_get_birth_and_delete_birth_mutation(self, schema, query, client_fixture, data, errors, request):
+
+        mixer.blend(Birth, pk=12)
+        
+        client = request.getfixturevalue(client_fixture)
+        result = client.execute(query=getattr(queries, schema), variables=data)
+
+        if client_fixture == 'client_register' and data.get('id') == 12:
+            assert not result.errors
+            assert result.data.get(query)['id'] == data.get('id') or str(data.get('id'))
+        else:
+            assert result.errors
+            assert len(result.errors) == 1
+            assert result.errors[0].message == errors
+
 
 class BaseClass(ABC):
-    # def test_all_birth(self):
-    #     mixer.blend(Birth)
-    #     person = mixer.blend(Person)
-    #     birth1 = mixer.blend(Birth)
-    #     birth1.person = person
-    #     birth1.save()
-    #     birth2 = mixer.blend(Birth)
-    #     birth2.person = person
-    #     birth2.save()
-    #     result = self.client.execute(query=queries.ALL_BIRTH)
-    #     assert not result.errors
-    #     assert len(result.data.get('allBirth')) == 3, 'Should return all birth'
-
-    #     result = self.client.execute(query=queries.ALL_BIRTH, variables={"idPerson": person.pk})
-    #     assert not result.errors
-    #     assert len(result.data.get('allBirth')) == 2, 'Should return 2 births'
-
-    def test_birth(self):
-        birth = mixer.blend(Birth)
-        result = self.client.execute(
-            query=queries.BIRTH,
-            variables={'id': birth.pk}
-        )
-        assert not result.errors
-        assert result.data.get('birth')['id'] == str(birth.pk)
 
     def test_save_birth_mutation(self):
         VARIABLE = {
@@ -196,23 +200,6 @@ class BaseClass(ABC):
             birth = Birth.objects.get(pk=birth_id)
             assert birth.person == person
 
-    def test_delete_birth_mutation(self):
-        birth = mixer.blend(Birth)
-
-        if not self.user.is_authenticated:
-            result = self.client.execute(
-                query=queries.DELETE_BIRTH,
-                variables={'id': birth.pk}
-            )
-            assert not result.errors
-            assert result.data.get('deleteBirth')['status'] == 403, 'Should return 403 if user is not logged in'
-        else:
-            result = self.client.execute(query=queries.DELETE_BIRTH)
-            assert result.errors
-
-            result = self.client.execute(query=queries.DELETE_BIRTH, variables={'id': birth.pk})
-            assert not result.errors
-            assert result.data.get('deleteBirth')['status'] == 200, 'Should return 200 if mutation is successful'
 
     def test_search_birth(self):
         for value in ['a', 'ab', 'abc']:

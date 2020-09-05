@@ -34,7 +34,6 @@ mutation SaveBirth(
 DELETE_BIRTH = '''
 mutation DeleteBirth($id: ID!){
     deleteBirth(id: $id){
-        status
         id
     }
 }
