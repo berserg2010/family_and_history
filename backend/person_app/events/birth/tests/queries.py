@@ -15,15 +15,19 @@ query Birth($id: ID!){
 }
 '''
 
-SAVE_BIRTH = '''
-mutation SaveBirth(
-    $data: BirthInput
-){
-    saveBirth(
-        data: $data
-    ){
-        status
-        formErrors
+CREATE_BIRTH = '''
+mutation CreateBirth($data: BirthInput){
+    createBirth(data: $data){
+        birth{
+            id
+        }
+    }
+}
+'''
+
+UPDATE_BIRTH = '''
+mutation UpdateBirth($data: BirthInput){
+    updateBirth(data: $data){
         birth{
             id
         }
@@ -49,11 +53,8 @@ query SearchBirth($searchTerm: String){
 '''
 
 LIKE_BIRTH = '''
-mutation LikeBirth($id: ID!, $email: String!){
-    likeBirth(
-        id: $id,
-        email: $email,
-    ){
+mutation LikeBirth($id: ID!){
+    likeBirth(id: $id){
         birth{
             likes
         }

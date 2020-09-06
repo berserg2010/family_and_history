@@ -45,12 +45,14 @@ class SurNameInput(graphene.InputObjectType):
 
 # ObjectField
 class ObjectFieldInput(graphene.InputObjectType):
+    
     note = graphene.String()
 
 
 # EventField
 class EventFieldType(DjangoObjectType):
-    datetime = graphene.JSONString()  # Как представить dict?
+
+    datetime = graphene.JSONString()
     likes = graphene.Int()
 
     class Meta:
@@ -58,8 +60,9 @@ class EventFieldType(DjangoObjectType):
 
 
 class EventFieldInput(ObjectFieldInput):
+
     id = graphene.ID()
-    note = graphene.String()
+    # note = graphene.String()
 
     day = graphene.Int()
     month = graphene.Int()

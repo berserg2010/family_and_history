@@ -22,6 +22,14 @@ check_data = [
     ('client_register', {'id': 12}, None),
 ]
 
+@pytest.fixture
+def create_obj_for_search():
+    for value in ['a', 'ab', 'abc']:
+        Birth.objects.create(
+            person=mixer.blend(Person),
+            surname=value,
+        )
+
 
 def test_birth_type():
     instance = schema.BirthType()
@@ -77,207 +85,186 @@ class TestBirthAPI:
             assert result.errors[0].message == errors
 
 
-class BaseClass(ABC):
+    data_create_birth_empty = {
+        'data': {
+            'gender': '',
+            'givname': '',
+            'surname': '',
+            'note': '',
 
-    def test_save_birth_mutation(self):
-        VARIABLE = {
-            "data": {
-                "gender": "M",
-                "givname": "Иван",
-                "surname": "Иванов",
-                "note": ":))",
-
-                "year": 2000,
-                "month": 6,
-                "day": 15,
-                "hour": 12,
-                "minute": 30,
-            }
+            'year': None,
+            'month': None,
+            'day': None,
+            'hour': None,
+            'minute': None,
         }
+    }
+    data_create_birth_full = {
+        'data': {
+            'gender': 'M',
+            'givname': 'Иван',
+            'surname': 'Иванов',
+            'note': ':))',
 
-        if not self.user.is_authenticated:
-            result = self.client.execute(
-                query=queries.SAVE_BIRTH,
-                variables=VARIABLE,
-            )
-            assert not result.errors
-            assert result.data.get('saveBirth')['status'] == 403, 'Should return 403 if user is not logged in'
-        else:
-            result = self.client.execute(
-                query=queries.SAVE_BIRTH,
-                variables={"data": {
-                    "gender": "",
-                    "givname": "",
-                    "surname": "",
-                    "note": "",
+            'year': 2000,
+            'month': 6,
+            'day': 15,
+            'hour': 12,
+            'minute': 30,
+        }
+    }
 
-                    "year": None,
-                    "month": None,
-                    "day": None,
-                    "hour": None,
-                    "minute": None,
-                }},
-            )
-            assert not result.errors
-            assert result.data.get('saveBirth')['status'] == 400
+    @pytest.mark.parametrize('client_fixture, data, errors', [
+        ('client', data_create_birth_empty, 'You do not have permission to perform this action'),
+        ('client', data_create_birth_full, 'You do not have permission to perform this action'),
+        ('client_register', data_create_birth_empty, 'Please enter data'),
+        ('client_register', data_create_birth_full, None),
+    ])
+    def test_create_birth_mutation(self, client_fixture, data, errors, request):
+        
+        client = request.getfixturevalue(client_fixture)
+        result = client.execute(query=queries.CREATE_BIRTH, variables=data)
 
-            result = self.client.execute(
-                query=queries.SAVE_BIRTH,
-                variables=VARIABLE,
-            )
+        birth_id = result.data.get('createBirth') and result.data.get('createBirth')['birth']['id']
+
+        if client_fixture == 'client_register' and birth_id is not None:
             assert not result.errors
-            assert result.data.get('saveBirth')['status'] == 200, 'Should return 200 if mutation is successful'
-            birth_id = int(result.data.get('saveBirth')['birth']['id'])
-            assert birth_id == 1, 'Should create new birth'
             birth = Birth.objects.get(pk=birth_id)
-            assert birth.gender == VARIABLE.get('data')['gender']
-            assert birth.givname == VARIABLE.get('data')['givname']
-            assert birth.surname == VARIABLE.get('data')['surname']
-            assert birth.submitter
-            assert birth.datetime == {
-                "year": VARIABLE.get('data')['year'],
-                "month": VARIABLE.get('data')['month'],
-                "day": VARIABLE.get('data')['day'],
-                "hour": VARIABLE.get('data')['hour'],
-                "minute": VARIABLE.get('data')['minute'],
-            }
-            assert birth.note == VARIABLE.get('data')['note']
-
-            VARIABLE = {
-                "data": {
-                    "id": birth_id,
-                    "gender": "F",
-                    "givname": "Ирина",
-                    "surname": "Петрова",
-                    "year": 1900,
-                    "month": 12,
-                    "day": 1,
-                    "hour": 20,
-                    "minute": 15,
-                    "note": ""
-                }
-            }
-            result = self.client.execute(
-                query=queries.SAVE_BIRTH,
-                variables=VARIABLE,
-            )
-            assert not result.errors
-            assert result.data.get('saveBirth')['status'] == 200, 'Should return 200 if mutation is successful'
-            birth_id = int(result.data.get('saveBirth')['birth']['id'])
-            assert birth_id == 1, 'Should create new birth'
-            birth = Birth.objects.get(pk=birth_id)
-            assert birth.gender == VARIABLE.get('data')['gender']
-            assert birth.givname == VARIABLE.get('data')['givname']
-            assert birth.surname == VARIABLE.get('data')['surname']
+            assert birth.gender == data.get('data')['gender']
+            assert birth.givname == data.get('data')['givname']
+            assert birth.surname == data.get('data')['surname']
             assert birth.submitter
             assert birth.changer
             assert birth.datetime == {
-                "year": VARIABLE.get('data')['year'],
-                "month": VARIABLE.get('data')['month'],
-                "day": VARIABLE.get('data')['day'],
-                "hour": VARIABLE.get('data')['hour'],
-                "minute": VARIABLE.get('data')['minute'],
+                'year': data.get('data')['year'],
+                'month': data.get('data')['month'],
+                'day': data.get('data')['day'],
+                'hour': data.get('data')['hour'],
+                'minute': data.get('data')['minute'],
             }
-            assert birth.note == VARIABLE.get('data')['note']
-
-            person = mixer.blend(Person)
-
-            result = self.client.execute(
-                query=queries.SAVE_BIRTH,
-                variables={
-                    "data": {
-                        "idPerson": person.pk,
-                        "gender": "F",
-                        "givname": "Ирина",
-                        "surname": "Петрова",
-                        "note": ""
-                    }
-                },
-            )
-            assert not result.errors
-            assert result.data.get('saveBirth')['status'] == 200, 'Should return 200 if mutation is successful'
-            birth_id = int(result.data.get('saveBirth')['birth']['id'])
-            birth = Birth.objects.get(pk=birth_id)
-            assert birth.person == person
-
-
-    def test_search_birth(self):
-        for value in ['a', 'ab', 'abc']:
-            Birth.objects.create(
-                person=mixer.blend(Person),
-                surname=value,
-            )
-
-        result = self.client.execute(
-            query=queries.SEARCH_BIRTH,
-            variables={'searchTerm': 'a'}
-        )
-        assert not result.errors
-        assert len(result.data.get('searchBirth')) == 3
-        result = self.client.execute(
-            query=queries.SEARCH_BIRTH,
-            variables={'searchTerm': 'ab'}
-        )
-        assert len(result.data.get('searchBirth')) == 2
-        result = self.client.execute(
-            query=queries.SEARCH_BIRTH,
-            variables={'searchTerm': 'abc'}
-        )
-        assert len(result.data.get('searchBirth')) == 1
-        result = self.client.execute(
-            query=queries.SEARCH_BIRTH,
-            variables={'searchTerm': 'abcd'}
-        )
-        assert len(result.data.get('searchBirth')) == 0
-
-    def test_like_birth(self):
-        user1 = mixer.blend(get_user_model())
-        birth = mixer.blend(Birth)
-
-        if not self.user.is_authenticated:
-            pass
+            assert birth.note == data.get('data')['note']
         else:
-            result = self.client.execute(
-                query=queries.LIKE_BIRTH,
-                variables={
-                    'id': birth.pk,
-                    'email': user1.email,
-                }
-            )
+            assert result.errors
+            assert len(result.errors) == 1
+            assert result.errors[0].message == errors
+
+
+    data_update_birth_empty = {
+        'data': {
+            'id': 12,
+            'gender': '',
+            'givname': '',
+            'surname': '',
+            'note': '',
+
+            'year': None,
+            'month': None,
+            'day': None,
+            'hour': None,
+            'minute': None,
+        }
+    }
+    data_update_birth_invalid_id = {
+        'data': {
+            'id': 21,
+            'gender': 'M',
+            'givname': 'Иван',
+            'surname': 'Иванов',
+            'note': ':))',
+
+            'year': 2000,
+            'month': 6,
+            'day': 15,
+            'hour': 12,
+            'minute': 30,
+        }
+    }
+    data_update_birth_full = {
+        'data': {
+            'id': 12,
+            'gender': 'M',
+            'givname': 'Иван',
+            'surname': 'Иванов',
+            'note': ':))',
+
+            'year': 2000,
+            'month': 6,
+            'day': 15,
+            'hour': 12,
+            'minute': 30,
+        }
+    }
+
+    @pytest.mark.parametrize('client_fixture, data, errors', [
+        ('client', data_update_birth_empty, 'You do not have permission to perform this action'),
+        ('client', data_update_birth_invalid_id, 'You do not have permission to perform this action'),
+        ('client', data_update_birth_full, 'You do not have permission to perform this action'),
+        ('client_register', data_update_birth_empty, 'Please enter data'),
+        ('client_register', data_update_birth_invalid_id, 'Please enter a valid id'),
+        ('client_register', data_update_birth_full, None),
+    ])
+    def test_update_birth_mutation(self, client_fixture, data, errors, request):
+        
+        mixer.blend(Birth, pk=12, submitter=mixer.blend(get_user_model()))
+
+        client = request.getfixturevalue(client_fixture)
+        result = client.execute(query=queries.UPDATE_BIRTH, variables=data)
+
+        if client_fixture == 'client_register' and errors is None:
             assert not result.errors
-            assert birth.likes == 1
-
-            user2 = mixer.blend(get_user_model())
-            self.client.execute(
-                query=queries.LIKE_BIRTH,
-                variables={
-                    'id': birth.pk,
-                    'email': user2.email,
-                }
-            )
-            assert birth.likes == 2
-
-            self.client.execute(
-                query=queries.LIKE_BIRTH,
-                variables={
-                    'id': birth.pk,
-                    'email': user2.email,
-                }
-            )
-            assert birth.likes == 1
+            birth = Birth.objects.get(pk=12)
+            assert birth.gender == data.get('data')['gender']
+            assert birth.givname == data.get('data')['givname']
+            assert birth.surname == data.get('data')['surname']
+            assert birth.submitter
+            assert birth.changer
+            assert birth.datetime == {
+                'year': data.get('data')['year'],
+                'month': data.get('data')['month'],
+                'day': data.get('data')['day'],
+                'hour': data.get('data')['hour'],
+                'minute': data.get('data')['minute'],
+            }
+            assert birth.note == data.get('data')['note']
+        else:
+            assert result.errors
+            assert len(result.errors) == 1
+            assert result.errors[0].message == errors
 
 
-class TestAnonymousClient(BaseClass):
-    @classmethod
-    def setup(cls):
-        cls.client = JSONWebTokenClient()
-        cls.user = AnonymousUser()
+    @pytest.mark.usefixtures('create_obj_for_search')
+    @pytest.mark.parametrize('client_fixture, data, correct_value, errors', [
+        ('client', {'searchTerm': 'a'}, 3, 'You do not have permission to perform this action'),
+        ('client_register', {'searchTerm': 'a'}, 3, None),
+        ('client_register', {'searchTerm': 'ab'}, 2, None),
+        ('client_register', {'searchTerm': 'abc'}, 1, None),
+        ('client_register', {'searchTerm': 'abcd'}, 0, None),
+    ])
+    def test_search_birth(self, client_fixture, data, correct_value, errors, request):
+
+        client = request.getfixturevalue(client_fixture)
+        result = client.execute(queries.SEARCH_BIRTH, variables=data)
+
+        if client_fixture == 'client_register' and errors is None:
+            assert not result.errors
+            assert len(result.data.get('searchBirth')) == correct_value
+        else:
+            assert result.errors[0].message == errors
 
 
-class TestAuthenticationClient(BaseClass):
-    @classmethod
-    def setup(cls):
-        cls.client = JSONWebTokenClient()
-        cls.user = mixer.blend(get_user_model())
+    @pytest.mark.parametrize('client_fixture, data, correct_value, errors', [
+        ('client', {'id': 12}, 3, 'You do not have permission to perform this action'),
+        ('client_register', {'id': 12}, 1, None),
+    ])
+    def test_like_birth(self, client_fixture, data, correct_value, errors, request):
+        birth = mixer.blend(Birth, pk=12)
 
-        cls.client.authenticate(cls.user)
+        client = request.getfixturevalue(client_fixture)
+        result = client.execute(queries.LIKE_BIRTH, variables=data)
+
+        if client_fixture == 'client_register' and errors is None:
+            assert not result.errors
+            assert birth.likes == correct_value
+
+        else:
+            assert result.errors[0].message == errors

@@ -34,61 +34,38 @@ class BirthType(
         )
 
 
-class BirthInput(
-    EventFieldInput,
-    graphene.InputObjectType,
-):
-    idPerson = graphene.ID()
+class BirthInput(EventFieldInput, graphene.InputObjectType):
+
+    person_id = graphene.ID()
     gender = graphene.String()
-    givname = graphene.String()  # Может быть GivName
-    surname = graphene.String()  # Может быть SurName
+    givname = graphene.String()
+    surname = graphene.String()
 
 
 def is_data(data):
     if isinstance(data, dict):
         for key, value in data.items():
-            if value:
+            if key != 'id' and value:
                 return True
 
 
-class SaveBirthMutation(graphene.Mutation):
-    status = graphene.Int()
-    formErrors = graphene.String()
+class CreateBirthMutation(graphene.Mutation):
+
     birth = graphene.Field(BirthType)
 
     class Arguments:
         data = BirthInput()
 
-    def mutate(self, info, data=None, **kwargs):
-        if not info.context.user.is_authenticated:
-            return SaveBirthMutation(status=403)
+    @login_required
+    def mutate(self, info, data=None):
 
         if not is_data(data):
-            return SaveBirthMutation(
-                status=400,
-                formErrors=json.dumps(
-                    {'data': ['Please enter a some data']}
-                )
-            )
+            return GraphQLError('Please enter data')
 
-        if info.context.user:
-            user = info.context.user
-        else:
-            user = None
+        changer_submitter = info.context.user
 
-        id = data.get('id')
-
-        if id and Birth.objects.filter(pk=id):
-            birth = Birth.objects.get(pk=id)
-            birth.changer = user
-
-        else:
-            birth = Birth.objects.create(
-                pk=id,
-                submitter=user,
-                person=data.get('idPerson')
-            )
-
+        birth = Birth()
+        birth.person = data.get('person_id')
         birth.gender = data.get('gender', 'U')
         birth.givname = data.get('givname')
         birth.surname = data.get('surname')
@@ -100,10 +77,52 @@ class SaveBirthMutation(graphene.Mutation):
             'minute': data.get('minute'),
         }
         birth.note = data.get('note')
+        birth.submitter = changer_submitter
+        birth.changer = changer_submitter
         birth.save()
 
-        return SaveBirthMutation(
-            status=200,
+        return CreateBirthMutation(
+            birth=birth,
+        )
+
+
+class UpdateBirthMutation(graphene.Mutation):
+
+    birth = graphene.Field(BirthType)
+
+    class Arguments:
+        data = BirthInput()
+
+    @login_required
+    def mutate(self, info, data=None):
+
+        if not is_data(data):
+            return GraphQLError('Please enter data')
+
+        birth_id = data.get('id')
+        changer_submitter = info.context.user
+
+        try:
+            birth = Birth.objects.get(pk=birth_id)
+        except ObjectDoesNotExist:
+            raise GraphQLError('Please enter a valid id')
+
+        birth.person = data.get('person_id')
+        birth.gender = data.get('gender', 'U')
+        birth.givname = data.get('givname')
+        birth.surname = data.get('surname')
+        birth.datetime = {
+            'day': data.get('day'),
+            'month': data.get('month'),
+            'year': data.get('year'),
+            'hour': data.get('hour'),
+            'minute': data.get('minute'),
+        }
+        birth.note = data.get('note')
+        birth.changer = changer_submitter
+        birth.save()
+
+        return UpdateBirthMutation(
             birth=birth,
         )
 
@@ -114,21 +133,19 @@ class DeleteBirthMutation(DeleteMutation):
 
 
 class LikeBirthMutation(graphene.Mutation):
-    status = graphene.Int()
-    formErrors = graphene.String()
+
     birth = graphene.Field(BirthType)
 
     class Arguments:
         id = graphene.ID(required=True)
-        email = graphene.String(required=True)
 
-    def mutate(self, info, **kwargs):
-        # if not info.context.user.is_authenticated:
-        #     return LikeBirthMutation(status=403)
+    @login_required
+    def mutate(self, info, id):
 
-        id = kwargs.get('id')
-        email = kwargs.get('email')
-        user = get_user_model().objects.get(email=email)
+        obj_id = id
+        user_email = info.context.user
+
+        user = get_user_model().objects.get(email=user_email)
         birth = Birth.objects.get(pk=id)
 
         if Birth.objects.filter(_person=birth.person, _likes=user).exists():
@@ -137,12 +154,10 @@ class LikeBirthMutation(graphene.Mutation):
             birth._likes.add(user)
 
         return LikeBirthMutation(
-            status=200,
             birth=birth,
         )
 
 
-# Output
 class Query(graphene.ObjectType):
 
     all_births = graphene.List(
@@ -189,6 +204,7 @@ class Query(graphene.ObjectType):
             raise GraphQLError('Please enter a valid id')
 
 
+    @login_required
     def resolve_search_birth(self, info, **kwargs):
         return Birth.objects.filter(  # Фильтр только по surname_male?
             _surname___surname_male__icontains=kwargs.get('searchTerm')
@@ -196,6 +212,7 @@ class Query(graphene.ObjectType):
 
 
 class Mutation(graphene.ObjectType):
-    save_birth = SaveBirthMutation.Field()
+    create_birth = CreateBirthMutation.Field()
+    update_birth = UpdateBirthMutation.Field()
     delete_birth = DeleteBirthMutation.Field()
     like_birth = LikeBirthMutation.Field()
