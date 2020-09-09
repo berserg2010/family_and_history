@@ -5,7 +5,7 @@ from django.db import models
 class ObjectField(models.Model):
     note = models.TextField(
         blank=True,
-        null=True,
+        null=False,
         default='',
     )
     submitted = models.DateTimeField(

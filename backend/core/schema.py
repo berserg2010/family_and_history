@@ -46,7 +46,11 @@ class SurNameInput(graphene.InputObjectType):
 # ObjectField
 class ObjectFieldInput(graphene.InputObjectType):
     
+    id = graphene.ID()
     note = graphene.String()
+
+    class Meta:
+        abstract = True
 
 
 # EventField
@@ -61,13 +65,14 @@ class EventFieldType(DjangoObjectType):
 
 class EventFieldInput(ObjectFieldInput):
 
-    id = graphene.ID()
-
     day = graphene.Int()
     month = graphene.Int()
     year = graphene.Int()
     hour = graphene.Int()
     minute = graphene.Int()
+
+    class Meta:
+        abstract = True
 
 
 exclude_fields_event_field = (
@@ -90,6 +95,7 @@ class EventFieldTypeTest(DjangoObjectType):
 
 class EventFieldInputTest(ObjectFieldInput):
 
-    id = graphene.ID()
-    note = graphene.String()
     datetime = DateTimeInput()
+
+    class Meta:
+        abstract = True

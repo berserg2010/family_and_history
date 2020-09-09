@@ -71,42 +71,57 @@ class TestPersonAPI:
     
     
     @pytest.mark.parametrize('client_fixture, data, errors', [
-        ('client', {'data': {'id': None, 'note': ':('}}, 'You do not have permission to perform this action'),
-        ('client', {'data': {'id': 21, 'note': ':('}}, 'You do not have permission to perform this action'),
-        ('client', {'data': {'id': 12, 'note': ':('}}, 'You do not have permission to perform this action'),
-        ('client_register', {'data': {'id': None, 'note': ':('}}, None),
-        ('client_register', {'data': {'id': 21, 'note': ':('}}, 'Please enter a valid id'),
-        ('client_register', {'data': {'id': 12, 'note': ':('}}, None),
+        ('client', None, 'You do not have permission to perform this action'),
+        ('client', {'data': {'note': ':('}}, 'You do not have permission to perform this action'),
+        ('client_register', None, None),
+        ('client_register', {'data': {'note': ':('}}, None),
     ])
-    def test_create_and_update_person_mutation(self, client_fixture, data, errors, request):
+    def test_create_person_mutation(self, client_fixture, data, errors, request):
 
-        data_id = data.get('data')['id']
         client = request.getfixturevalue(client_fixture)
-
         result = client.execute(query=queries.CREATE_PERSON, variables=data)
 
-        if client_fixture == 'client_register' and data_id is None:
+        person_id = result.data is not None and result.data.get('createPerson') and result.data.get('createPerson')['person']['id']
+
+        if client_fixture == 'client_register' and person_id:
             assert not result.errors
-            person_id = result.data.get('createPerson')['person']['id']
             person = Person.objects.get(pk=person_id)
-            assert person.note == data.get('data')['note']
+            assert person.note == (data.get('data')['note'] if data else '')
+            assert person.submitter
+            assert person.changer
         else:
             assert result.errors
             assert len(result.errors) == 1
-            if client_fixture == 'client_register' and data_id == 12:
-                assert result.errors[0].message == 'Please enter a valid id'
-            else:
-                assert result.errors[0].message == errors
+            assert result.errors[0].message == errors
 
-        mixer.blend(Person, pk=12)
 
-        result = client.execute(query=queries.CREATE_PERSON, variables=data)
+    @pytest.mark.parametrize('client_fixture, data, errors', [
+        ('client', None, 'Variable "$id" of required type "ID!" was not provided.'),
+        ('client', {'id': None, 'data': {'note': ''}}, 'Variable "$id" of required type "ID!" was not provided.'),
+        ('client', {'id': 21, 'data': None}, 'Variable "$data" of required type "PersonInput!" was not provided.'),
+        ('client', {'id': 21, 'data': {'note': ':('}}, 'You do not have permission to perform this action'),
+        ('client', {'id': 12, 'data': {'note': ''}}, 'You do not have permission to perform this action'),
+        ('client', {'id': 12, 'data': {'note': ':('}}, 'You do not have permission to perform this action'),
+        ('client_register', None, 'Variable "$id" of required type "ID!" was not provided.'),
+        ('client_register', {'id': None, 'data': {'note': ''}}, 'Variable "$id" of required type "ID!" was not provided.'),
+        ('client_register', {'id': 21, 'data': None}, 'Variable "$data" of required type "PersonInput!" was not provided.'),
+        ('client_register', {'id': 21, 'data': {'note': ':('}}, 'Please enter a valid id'),
+        ('client_register', {'id': 12, 'data': {'note': ''}}, None),
+        ('client_register', {'id': 12, 'data': {'note': ':('}}, None),
+    ])
+    def test_update_person_mutation(self, client_fixture, data, errors, request):
 
-        if client_fixture == 'client_register' and (data_id == 12 or data_id is None):
+        mixer.blend(Person, pk=12, submitter=mixer.blend(get_user_model()), changer=mixer.blend(get_user_model()))
+
+        client = request.getfixturevalue(client_fixture)
+        result = client.execute(query=queries.UPDATE_PERSON, variables=data)
+
+        if client_fixture == 'client_register' and errors is None:
             assert not result.errors
-            person_id = result.data.get('createPerson')['person']['id']
-            person = Person.objects.get(pk=person_id)
-            assert person.note == data.get('data')['note']
+            person = Person.objects.get(pk=12)
+            assert person.note == (data.get('data')['note'] if data else '')
+            assert person.submitter
+            assert person.changer
         else:
             assert result.errors
             assert len(result.errors) == 1

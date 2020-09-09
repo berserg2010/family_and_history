@@ -5,54 +5,45 @@ import graphene
 from graphene_django import DjangoObjectType
 from graphql_jwt.decorators import login_required
 
-from common.schema import DeleteMutation
+from common.schema import (
+    CreateObjectMutation, 
+    UpdateObjectMutation, 
+    DeleteMutation,
+)
+from core.schema import ObjectFieldInput
 from .models import Person
 
 
 class PersonType(DjangoObjectType):
+
     class Meta:
         model = Person
         # filter_fields = {'note': ['icontains']}
 
 
-class PersonInput(graphene.InputObjectType):
+class PersonInput(ObjectFieldInput):
 
-    id = graphene.ID()
     user = graphene.ID()
-    note = graphene.String()
 
 
-class CreatePersonMutation(graphene.Mutation):
+class CreatePersonMutation(CreateObjectMutation):
+
+    obj = Person
 
     person = graphene.Field(PersonType)
 
     class Arguments:
         data = PersonInput()
 
-    @login_required
-    def mutate(self, info, data=None, **kwargs):
 
-        person_id = data.get('id')
-        changer_submitter = info.context.user
+class UpdatePersonMutation(UpdateObjectMutation):
 
-        if person_id:
-            try:
-                person = Person.objects.get(pk=person_id)
-            except ObjectDoesNotExist:
-                raise GraphQLError('Please enter a valid id')
+    obj = Person
 
-        else:
-            person = Person()
-            person.submitter = changer_submitter
+    person = graphene.Field(PersonType)
 
-        person.user = data.get('user')
-        person.note = data.get('note')
-        person.changer = changer_submitter
-        person.save()
-
-        return CreatePersonMutation(
-            person=person,
-        )
+    class Arguments(UpdateObjectMutation.Arguments):
+        data = PersonInput(required=True)
 
 
 class DeletePersonMutation(DeleteMutation):
@@ -99,4 +90,5 @@ class Query(graphene.ObjectType):
 
 class Mutation(graphene.ObjectType):
     create_person = CreatePersonMutation.Field()
+    update_person = UpdatePersonMutation.Field()
     delete_person = DeletePersonMutation.Field()

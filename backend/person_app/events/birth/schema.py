@@ -37,7 +37,7 @@ class BirthType(
         )
 
 
-class BirthInput(EventFieldInputTest, graphene.InputObjectType):
+class BirthInput(EventFieldInputTest):
 
     person_id = graphene.ID()
     gender = graphene.String()

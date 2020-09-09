@@ -16,12 +16,18 @@ query Person($id: ID!){
 '''
 
 CREATE_PERSON = '''
-mutation CreatePerson(
-    $data: PersonInput
-){
-    createPerson(
-        data: $data
-    ){
+mutation CreatePerson($data: PersonInput){
+    createPerson(data: $data){
+        person{
+            id
+        }
+    }
+}
+'''
+
+UPDATE_PERSON = '''
+mutation UpdatePerson($id: ID!, $data: PersonInput!){
+    updatePerson(id: $id, data: $data){
         person{
             id
         }

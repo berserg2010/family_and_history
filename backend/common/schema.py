@@ -13,6 +13,25 @@ def is_data(data):
         return False
 
 
+class CreateObjectMutation(graphene.Mutation):
+
+    @classmethod
+    @login_required
+    def mutate(cls, root, info, data={}):
+
+        changer_submitter = info.context.user
+
+        obj = cls.obj()
+
+        for key, value in data.items():
+            setattr(obj, key, value)
+
+        obj.submitter = changer_submitter
+        obj.changer = changer_submitter
+        obj.save()
+
+        return cls(obj)
+
 class CreateMutation(graphene.Mutation):
 
     @classmethod
@@ -30,6 +49,33 @@ class CreateMutation(graphene.Mutation):
             setattr(obj, key, value)
 
         obj.submitter = changer_submitter
+        obj.changer = changer_submitter
+        obj.save()
+
+        return cls(obj)
+
+
+class UpdateObjectMutation(graphene.Mutation):
+
+    id = graphene.ID()
+
+    class Arguments:
+        id = graphene.ID(required=True)
+
+    @classmethod
+    @login_required
+    def mutate(cls, root, info, id, data):
+
+        changer_submitter = info.context.user
+        
+        try:
+            obj = cls.obj.objects.get(pk=id)
+        except ObjectDoesNotExist:
+            raise GraphQLError('Please enter a valid id')
+
+        for key, value in data.items():
+            setattr(obj, key, value)
+
         obj.changer = changer_submitter
         obj.save()
 
