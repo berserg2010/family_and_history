@@ -6,18 +6,21 @@ from graphene_django import DjangoObjectType
 from graphql_jwt.decorators import login_required
 import json
 
-from common.schema import DeleteMutation
+from common.schema import CreateMutation, UpdateMutation, DeleteMutation
 from .models import Birth
 from core.schema import (
     EventFieldType,
     EventFieldInput,
+    EventFieldTypeTest,
+    EventFieldInputTest,
     exclude_fields_event_field,
 )
 from person_app.person.schema import PersonType
 
 
 class BirthType(
-    EventFieldType,
+    # EventFieldType,
+    EventFieldTypeTest,
     # DjangoObjectType,
 ):
     person = graphene.Field(PersonType)
@@ -34,7 +37,7 @@ class BirthType(
         )
 
 
-class BirthInput(EventFieldInput, graphene.InputObjectType):
+class BirthInput(EventFieldInputTest, graphene.InputObjectType):
 
     person_id = graphene.ID()
     gender = graphene.String()
@@ -42,89 +45,24 @@ class BirthInput(EventFieldInput, graphene.InputObjectType):
     surname = graphene.String()
 
 
-def is_data(data):
-    if isinstance(data, dict):
-        for key, value in data.items():
-            if key != 'id' and value:
-                return True
+class CreateBirthMutation(CreateMutation):
 
-
-class CreateBirthMutation(graphene.Mutation):
+    obj = Birth
 
     birth = graphene.Field(BirthType)
 
     class Arguments:
-        data = BirthInput()
-
-    @login_required
-    def mutate(self, info, data=None):
-
-        if not is_data(data):
-            return GraphQLError('Please enter data')
-
-        changer_submitter = info.context.user
-
-        birth = Birth()
-        birth.person = data.get('person_id')
-        birth.gender = data.get('gender', 'U')
-        birth.givname = data.get('givname')
-        birth.surname = data.get('surname')
-        birth.datetime = {
-            'day': data.get('day'),
-            'month': data.get('month'),
-            'year': data.get('year'),
-            'hour': data.get('hour'),
-            'minute': data.get('minute'),
-        }
-        birth.note = data.get('note')
-        birth.submitter = changer_submitter
-        birth.changer = changer_submitter
-        birth.save()
-
-        return CreateBirthMutation(
-            birth=birth,
-        )
+        data = BirthInput(required=True)
 
 
-class UpdateBirthMutation(graphene.Mutation):
+class UpdateBirthMutation(UpdateMutation):
+
+    obj = Birth
 
     birth = graphene.Field(BirthType)
 
     class Arguments:
-        data = BirthInput()
-
-    @login_required
-    def mutate(self, info, data=None):
-
-        if not is_data(data):
-            return GraphQLError('Please enter data')
-
-        birth_id = data.get('id')
-        changer_submitter = info.context.user
-
-        try:
-            birth = Birth.objects.get(pk=birth_id)
-        except ObjectDoesNotExist:
-            raise GraphQLError('Please enter a valid id')
-
-        birth.person = data.get('person_id')
-        birth.gender = data.get('gender', 'U')
-        birth.givname = data.get('givname')
-        birth.surname = data.get('surname')
-        birth.datetime = {
-            'day': data.get('day'),
-            'month': data.get('month'),
-            'year': data.get('year'),
-            'hour': data.get('hour'),
-            'minute': data.get('minute'),
-        }
-        birth.note = data.get('note')
-        birth.changer = changer_submitter
-        birth.save()
-
-        return UpdateBirthMutation(
-            birth=birth,
-        )
+        data = BirthInput(required=True)
 
 
 class DeleteBirthMutation(DeleteMutation):

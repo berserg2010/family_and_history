@@ -92,11 +92,7 @@ class TestBirthAPI:
             'surname': '',
             'note': '',
 
-            'year': None,
-            'month': None,
-            'day': None,
-            'hour': None,
-            'minute': None,
+            'datetime': {}
         }
     }
     data_create_birth_full = {
@@ -106,17 +102,21 @@ class TestBirthAPI:
             'surname': 'Иванов',
             'note': ':))',
 
-            'year': 2000,
-            'month': 6,
-            'day': 15,
-            'hour': 12,
-            'minute': 30,
+            'datetime': {
+                'year': 2000,
+                'month': 6,
+                'day': 15,
+                'hour': 12,
+                'minute': 30,
+            }
         }
     }
 
     @pytest.mark.parametrize('client_fixture, data, errors', [
+        ('client', None, 'Variable "$data" of required type "BirthInput!" was not provided.'),
         ('client', data_create_birth_empty, 'You do not have permission to perform this action'),
         ('client', data_create_birth_full, 'You do not have permission to perform this action'),
+        ('client_register', None, 'Variable "$data" of required type "BirthInput!" was not provided.'),
         ('client_register', data_create_birth_empty, 'Please enter data'),
         ('client_register', data_create_birth_full, None),
     ])
@@ -125,24 +125,18 @@ class TestBirthAPI:
         client = request.getfixturevalue(client_fixture)
         result = client.execute(query=queries.CREATE_BIRTH, variables=data)
 
-        birth_id = result.data.get('createBirth') and result.data.get('createBirth')['birth']['id']
+        birth_id = result.data is not None and result.data.get('createBirth') and result.data.get('createBirth')['birth']['id']
 
-        if client_fixture == 'client_register' and birth_id is not None:
+        if client_fixture == 'client_register' and birth_id:
             assert not result.errors
             birth = Birth.objects.get(pk=birth_id)
             assert birth.gender == data.get('data')['gender']
             assert birth.givname == data.get('data')['givname']
             assert birth.surname == data.get('data')['surname']
+            assert birth.datetime == data.get('data')['datetime']
+            assert birth.note == data.get('data')['note']
             assert birth.submitter
             assert birth.changer
-            assert birth.datetime == {
-                'year': data.get('data')['year'],
-                'month': data.get('data')['month'],
-                'day': data.get('data')['day'],
-                'hour': data.get('data')['hour'],
-                'minute': data.get('data')['minute'],
-            }
-            assert birth.note == data.get('data')['note']
         else:
             assert result.errors
             assert len(result.errors) == 1
@@ -157,11 +151,7 @@ class TestBirthAPI:
             'surname': '',
             'note': '',
 
-            'year': None,
-            'month': None,
-            'day': None,
-            'hour': None,
-            'minute': None,
+            'datetime': {}
         }
     }
     data_update_birth_invalid_id = {
@@ -172,11 +162,13 @@ class TestBirthAPI:
             'surname': 'Иванов',
             'note': ':))',
 
-            'year': 2000,
-            'month': 6,
-            'day': 15,
-            'hour': 12,
-            'minute': 30,
+            'datetime': {
+                'year': 2000,
+                'month': 6,
+                'day': 15,
+                'hour': 12,
+                'minute': 30,
+            }
         }
     }
     data_update_birth_full = {
@@ -187,18 +179,22 @@ class TestBirthAPI:
             'surname': 'Иванов',
             'note': ':))',
 
-            'year': 2000,
-            'month': 6,
-            'day': 15,
-            'hour': 12,
-            'minute': 30,
+            'datetime': {
+                'year': 2000,
+                'month': 6,
+                'day': 15,
+                'hour': 12,
+                'minute': 30,
+            }
         }
     }
 
     @pytest.mark.parametrize('client_fixture, data, errors', [
+        ('client', None, 'Variable "$data" of required type "BirthInput!" was not provided.'),
         ('client', data_update_birth_empty, 'You do not have permission to perform this action'),
         ('client', data_update_birth_invalid_id, 'You do not have permission to perform this action'),
         ('client', data_update_birth_full, 'You do not have permission to perform this action'),
+        ('client_register', None, 'Variable "$data" of required type "BirthInput!" was not provided.'),
         ('client_register', data_update_birth_empty, 'Please enter data'),
         ('client_register', data_update_birth_invalid_id, 'Please enter a valid id'),
         ('client_register', data_update_birth_full, None),
@@ -216,16 +212,10 @@ class TestBirthAPI:
             assert birth.gender == data.get('data')['gender']
             assert birth.givname == data.get('data')['givname']
             assert birth.surname == data.get('data')['surname']
+            assert birth.datetime == data.get('data')['datetime']
+            assert birth.note == data.get('data')['note']
             assert birth.submitter
             assert birth.changer
-            assert birth.datetime == {
-                'year': data.get('data')['year'],
-                'month': data.get('data')['month'],
-                'day': data.get('data')['day'],
-                'hour': data.get('data')['hour'],
-                'minute': data.get('data')['minute'],
-            }
-            assert birth.note == data.get('data')['note']
         else:
             assert result.errors
             assert len(result.errors) == 1

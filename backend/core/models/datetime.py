@@ -71,7 +71,7 @@ class DateTime(models.Model):
         )
 
     @datetime.setter
-    def datetime(self, kwargs):
+    def datetime(self, kwargs) -> None:
         check_is_data = None
 
         if kwargs:

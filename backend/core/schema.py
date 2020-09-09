@@ -62,7 +62,6 @@ class EventFieldType(DjangoObjectType):
 class EventFieldInput(ObjectFieldInput):
 
     id = graphene.ID()
-    # note = graphene.String()
 
     day = graphene.Int()
     month = graphene.Int()
@@ -81,6 +80,7 @@ exclude_fields_event_field = (
 
 # EventFieldTest
 class EventFieldTypeTest(DjangoObjectType):
+
     datetime = graphene.Field(DateTimeType)
     likes = graphene.Int()
 
@@ -89,6 +89,7 @@ class EventFieldTypeTest(DjangoObjectType):
 
 
 class EventFieldInputTest(ObjectFieldInput):
+
     id = graphene.ID()
     note = graphene.String()
     datetime = DateTimeInput()
