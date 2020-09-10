@@ -1,5 +1,8 @@
 from django.db import models
 from django.db.models import Q
+from django.core.exceptions import ObjectDoesNotExist
+from graphql import GraphQLError
+
 
 from core.models import (
     choices,
@@ -43,18 +46,18 @@ class Birth(EventField):
         return self._person
 
     @person.setter
-    def person(self, value):
+    def person(self, value) -> None:
         if isinstance(value, Person):
             self._person = value
-        elif Person.objects.filter(pk=value).exists():
+        # elif Person.objects.filter(pk=value).exists():
+        #     self._person = Person.objects.get(pk=value)
+        else:
             self._person = Person.objects.get(pk=value)
 
+
     @property
-    def givname(self):
-        if self._givname:
-            return self._givname.givname
-        else:
-            return ''
+    def givname(self) -> str:
+        return self._givname.givname if self._givname else ''
 
     @givname.setter
     def givname(self, value):
@@ -80,8 +83,9 @@ class Birth(EventField):
 
         self._givname = value
 
+
     @property
-    def surname(self):
+    def surname(self) -> str:
         if self._surname:
             if self.gender == 'F':
                 surname = self._surname.surname[1]
@@ -122,15 +126,16 @@ class Birth(EventField):
 
         self._surname = value
 
+
     def save(self, *args, **kwargs):
         # if self.pk is None and self.person is None:
         if self._person is None:
             self._person = Person.objects.create()
         super().save(*args, **kwargs)
 
+
     def delete(self, *args, **kwargs):
         link_dec(self._givname)
         link_dec(self._surname)
         link_dec(self._datetime)
         super().delete(*args, **kwargs)
-

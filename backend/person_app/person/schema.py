@@ -53,6 +53,8 @@ class DeletePersonMutation(DeleteMutation):
 
 class Query(graphene.ObjectType):
 
+    obj = Person
+
     all_persons = graphene.List(PersonType)
 
     person = graphene.Field(
@@ -72,12 +74,10 @@ class Query(graphene.ObjectType):
     
 
     @login_required
-    def resolve_person(self, info, **kwargs):
-
-        person_id = kwargs.get('id')
+    def resolve_person(self, info, id, **kwargs):
 
         try:
-            return Person.objects.get(pk=person_id)
+            return Person.objects.get(pk=id)
         except ObjectDoesNotExist:
             raise GraphQLError('Please enter a valid id')
 

@@ -13,6 +13,38 @@ from . import queries
 pytestmark = pytest.mark.django_db
 
 
+birth_empty = {
+    'gender': '',
+    'givname': '',
+    'surname': '',
+    'note': '',
+}
+birth_full = {
+    'gender': 'M',
+    'givname': 'Иван',
+    'surname': 'Иванов',
+    'note': ':))',
+}
+
+datetime_none = {'datetime': {}}
+datetime_empty = {
+    'datetime': {
+        'year': None,
+        'month': None,
+        'day': None,
+        'hour': None,
+        'minute': None,
+    }}
+datetime_full = {
+    'datetime': {
+        'year': 2000,
+        'month': 6,
+        'day': 15,
+        'hour': 12,
+        'minute': 30,
+    }}
+
+
 check_data = [
     ('client', {'id': None}, 'Variable "$id" of required type "ID!" was not provided.'),
     ('client', {'id': 21}, 'You do not have permission to perform this action'),
@@ -84,45 +116,45 @@ class TestBirthAPI:
             assert len(result.errors) == 1
             assert result.errors[0].message == errors
 
+    person_id_none = {'personId': None}
+    person_id_invalid = {'personId': 21}
+    person_id_valid = {'personId': 12}
 
-    data_create_birth_empty = {
+    data_none = {'data': None}
+    data_empty = {
         'data': {
-            'gender': '',
-            'givname': '',
-            'surname': '',
-            'note': '',
-
-            'datetime': {}
-        }
-    }
-    data_create_birth_full = {
+            **birth_empty,
+            **datetime_none,
+        }}
+    data_full = {
         'data': {
-            'gender': 'M',
-            'givname': 'Иван',
-            'surname': 'Иванов',
-            'note': ':))',
-
-            'datetime': {
-                'year': 2000,
-                'month': 6,
-                'day': 15,
-                'hour': 12,
-                'minute': 30,
-            }
-        }
-    }
+            **birth_full,
+            **datetime_full,
+        }}
 
     @pytest.mark.parametrize('client_fixture, data, errors', [
-        ('client', None, 'Variable "$data" of required type "BirthInput!" was not provided.'),
-        ('client', data_create_birth_empty, 'You do not have permission to perform this action'),
-        ('client', data_create_birth_full, 'You do not have permission to perform this action'),
-        ('client_register', None, 'Variable "$data" of required type "BirthInput!" was not provided.'),
-        ('client_register', data_create_birth_empty, 'Please enter data'),
-        ('client_register', data_create_birth_full, None),
+        ('client', {**person_id_none, **data_full}, 'Variable "$personId" of required type "ID!" was not provided.'),
+        ('client', {**person_id_valid, **data_none}, 'Variable "$data" of required type "BirthInput!" was not provided.'),
+        ('client', {**person_id_invalid, **data_full}, 'You do not have permission to perform this action'),
+        ('client_register', {**person_id_none, **data_full}, 'Variable "$personId" of required type "ID!" was not provided.'),
+        ('client_register', {**person_id_valid, **data_none}, 'Variable "$data" of required type "BirthInput!" was not provided.'),
+        ('client_register', {**person_id_invalid, **data_full}, 'Please enter a valid person_id'),
+        ('client_register', {**person_id_valid, **data_empty}, None),
     ])
     def test_create_birth_mutation(self, client_fixture, data, errors, request):
-        
+
         client = request.getfixturevalue(client_fixture)
+        result = client.execute(query=queries.CREATE_BIRTH, variables=data)
+
+        birth_id = result.data is not None and result.data.get('createBirth') and result.data.get('createBirth')['birth']['id']
+
+        if errors:
+            assert result.errors
+            assert len(result.errors) == 1
+            assert result.errors[0].message == errors
+        
+        mixer.blend(Person, pk=12)
+
         result = client.execute(query=queries.CREATE_BIRTH, variables=data)
 
         birth_id = result.data is not None and result.data.get('createBirth') and result.data.get('createBirth')['birth']['id']
@@ -130,17 +162,14 @@ class TestBirthAPI:
         if client_fixture == 'client_register' and birth_id:
             assert not result.errors
             birth = Birth.objects.get(pk=birth_id)
-            assert birth.gender == data.get('data')['gender']
-            assert birth.givname == data.get('data')['givname']
+            data_ = data.get('data')
+            assert birth.gender == data_['gender'] if data_ else 'U'
+            assert birth.givname == data_['givname'] if data_ else ''
             assert birth.surname == data.get('data')['surname']
             assert birth.datetime == data.get('data')['datetime']
             assert birth.note == data.get('data')['note']
             assert birth.submitter
             assert birth.changer
-        else:
-            assert result.errors
-            assert len(result.errors) == 1
-            assert result.errors[0].message == errors
 
 
     data_update_birth_empty = {
@@ -151,7 +180,7 @@ class TestBirthAPI:
             'surname': '',
             'note': '',
 
-            'datetime': {}
+            **datetime_none,
         }
     }
     data_update_birth_invalid_id = {
@@ -162,13 +191,7 @@ class TestBirthAPI:
             'surname': 'Иванов',
             'note': ':))',
 
-            'datetime': {
-                'year': 2000,
-                'month': 6,
-                'day': 15,
-                'hour': 12,
-                'minute': 30,
-            }
+            **datetime_full,
         }
     }
     data_update_birth_full = {
@@ -179,13 +202,7 @@ class TestBirthAPI:
             'surname': 'Иванов',
             'note': ':))',
 
-            'datetime': {
-                'year': 2000,
-                'month': 6,
-                'day': 15,
-                'hour': 12,
-                'minute': 30,
-            }
+            **datetime_full,
         }
     }
 

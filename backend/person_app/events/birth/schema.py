@@ -6,7 +6,12 @@ from graphene_django import DjangoObjectType
 from graphql_jwt.decorators import login_required
 import json
 
-from common.schema import CreateMutation, UpdateMutation, DeleteMutation
+from common.schema import (
+    CreateMutation, 
+    CreateObjectMutation, 
+    UpdateMutation, 
+    DeleteMutation,
+)
 from .models import Birth
 from core.schema import (
     EventFieldType,
@@ -39,19 +44,20 @@ class BirthType(
 
 class BirthInput(EventFieldInputTest):
 
-    person_id = graphene.ID()
+    # person_id = graphene.ID()
     gender = graphene.String()
     givname = graphene.String()
     surname = graphene.String()
 
 
-class CreateBirthMutation(CreateMutation):
+class CreateBirthMutation(CreateObjectMutation):
 
     obj = Birth
 
     birth = graphene.Field(BirthType)
 
     class Arguments:
+        person_id = graphene.ID(required=True)
         data = BirthInput(required=True)
 
 

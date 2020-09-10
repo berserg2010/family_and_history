@@ -17,13 +17,22 @@ class CreateObjectMutation(graphene.Mutation):
 
     @classmethod
     @login_required
-    def mutate(cls, root, info, data={}):
+    def mutate(cls, root, info, data={}, **kwargs):
 
         changer_submitter = info.context.user
 
         obj = cls.obj()
 
-        for key, value in data.items():
+        for key, value in dict(data, **kwargs).items():
+            if key.endswith('id'):
+                
+                foreign_model = cls.obj._meta.get_field(f'_{key[:-3]}').remote_field.model
+                
+                try:
+                    foreign_model.objects.get(pk=value)
+                except ObjectDoesNotExist:
+                    raise GraphQLError(f'Please enter a valid {key}')
+            
             setattr(obj, key, value)
 
         obj.submitter = changer_submitter
