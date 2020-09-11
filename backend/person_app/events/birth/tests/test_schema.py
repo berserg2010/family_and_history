@@ -13,6 +13,14 @@ from . import queries
 pytestmark = pytest.mark.django_db
 
 
+id_none = {'id': None}
+id_invalid = {'id': 21}
+id_valid = {'id': 12}
+
+person_id_none = {'personId': None}
+person_id_invalid = {'personId': 21}
+person_id_valid = {'personId': 12}
+
 birth_empty = {
     'gender': '',
     'givname': '',
@@ -21,8 +29,8 @@ birth_empty = {
 }
 birth_full = {
     'gender': 'M',
-    'givname': 'Иван',
-    'surname': 'Иванов',
+    'givname': 'Ivan',
+    'surname': 'Ivanov',
     'note': ':))',
 }
 
@@ -37,21 +45,30 @@ datetime_empty = {
     }}
 datetime_full = {
     'datetime': {
-        'year': 2000,
-        'month': 6,
         'day': 15,
         'hour': 12,
         'minute': 30,
+        'month': 6,
+        'year': 2000,
     }}
+
+data_empty = {
+    **birth_empty,
+    **datetime_none,
+}
+data_full = {
+    **birth_full,
+    **datetime_full,
+}
 
 
 check_data = [
-    ('client', {'id': None}, 'Variable "$id" of required type "ID!" was not provided.'),
-    ('client', {'id': 21}, 'You do not have permission to perform this action'),
-    ('client', {'id': 12}, 'You do not have permission to perform this action'),
-    ('client_register', {'id': None}, 'Variable "$id" of required type "ID!" was not provided.'),
-    ('client_register', {'id': 21}, 'Please enter a valid id'),
-    ('client_register', {'id': 12}, None),
+    ('client', id_none, 'Variable "$id" of required type "ID!" was not provided.'),
+    ('client', id_invalid, 'You do not have permission to perform this action'),
+    ('client', id_valid, 'You do not have permission to perform this action'),
+    ('client_register', id_none, 'Variable "$id" of required type "ID!" was not provided.'),
+    ('client_register', id_invalid, 'Please enter a valid id'),
+    ('client_register', id_valid, None),
 ]
 
 @pytest.fixture
@@ -73,11 +90,11 @@ class TestBirthAPI:
     
     @pytest.mark.parametrize('client_fixture, data, errors', [
         ('client', None, 'You do not have permission to perform this action'),
-        ('client', {'personId': 21}, 'You do not have permission to perform this action'),
-        ('client', {'personId': 12}, 'You do not have permission to perform this action'),
+        ('client', person_id_invalid, 'You do not have permission to perform this action'),
+        ('client', person_id_valid, 'You do not have permission to perform this action'),
         ('client_register', None, None),
-        ('client_register', {'personId': 21}, 'Please enter a valid id'),
-        ('client_register', {'personId': 12}, None),
+        ('client_register', person_id_invalid, 'Please enter a valid id'),
+        ('client_register', person_id_valid, None),
     ])
     def test_get_all_births(self, client_fixture, data, errors, request):
 
@@ -96,7 +113,7 @@ class TestBirthAPI:
         else:
             assert result.errors
             assert len(result.errors) == 1
-            assert result.errors[0].message == errors
+            assert errors in result.errors[0].message
     
 
     @pytest.mark.parametrize('schema, query', [('BIRTH', 'birth'), ('DELETE_BIRTH', 'deleteBirth')])
@@ -116,30 +133,15 @@ class TestBirthAPI:
             assert len(result.errors) == 1
             assert result.errors[0].message == errors
 
-    person_id_none = {'personId': None}
-    person_id_invalid = {'personId': 21}
-    person_id_valid = {'personId': 12}
-
-    data_none = {'data': None}
-    data_empty = {
-        'data': {
-            **birth_empty,
-            **datetime_none,
-        }}
-    data_full = {
-        'data': {
-            **birth_full,
-            **datetime_full,
-        }}
 
     @pytest.mark.parametrize('client_fixture, data, errors', [
-        ('client', {**person_id_none, **data_full}, 'Variable "$personId" of required type "ID!" was not provided.'),
-        ('client', {**person_id_valid, **data_none}, 'Variable "$data" of required type "BirthInput!" was not provided.'),
-        ('client', {**person_id_invalid, **data_full}, 'You do not have permission to perform this action'),
-        ('client_register', {**person_id_none, **data_full}, 'Variable "$personId" of required type "ID!" was not provided.'),
-        ('client_register', {**person_id_valid, **data_none}, 'Variable "$data" of required type "BirthInput!" was not provided.'),
-        ('client_register', {**person_id_invalid, **data_full}, 'Please enter a valid person_id'),
-        ('client_register', {**person_id_valid, **data_empty}, None),
+        ('client', {'data': None}, 'Variable "$data" of required type "BirthInput!" was not provided.'),
+        ('client', {'data': {**person_id_none, **data_full}}, 'In field "personId": Expected "ID!", found null.'),
+        ('client', {'data': {**person_id_invalid, **data_full}}, 'You do not have permission to perform this action'),
+        ('client_register', {'data': None}, 'Variable "$data" of required type "BirthInput!" was not provided.'),
+        ('client_register', {'data': {**person_id_none, **data_full}}, 'In field "personId": Expected "ID!", found null.'),
+        ('client_register', {'data': {**person_id_invalid, **data_full}}, 'Please enter a valid person_id'),
+        ('client_register', {'data': {**person_id_valid, **data_empty}}, None),
     ])
     def test_create_birth_mutation(self, client_fixture, data, errors, request):
 
@@ -151,7 +153,7 @@ class TestBirthAPI:
         if errors:
             assert result.errors
             assert len(result.errors) == 1
-            assert result.errors[0].message == errors
+            assert errors in result.errors[0].message
         
         mixer.blend(Person, pk=12)
 
@@ -172,52 +174,24 @@ class TestBirthAPI:
             assert birth.changer
 
 
-    data_update_birth_empty = {
-        'data': {
-            'id': 12,
-            'gender': '',
-            'givname': '',
-            'surname': '',
-            'note': '',
-
-            **datetime_none,
-        }
-    }
-    data_update_birth_invalid_id = {
-        'data': {
-            'id': 21,
-            'gender': 'M',
-            'givname': 'Иван',
-            'surname': 'Иванов',
-            'note': ':))',
-
-            **datetime_full,
-        }
-    }
-    data_update_birth_full = {
-        'data': {
-            'id': 12,
-            'gender': 'M',
-            'givname': 'Иван',
-            'surname': 'Иванов',
-            'note': ':))',
-
-            **datetime_full,
-        }
-    }
-
     @pytest.mark.parametrize('client_fixture, data, errors', [
-        ('client', None, 'Variable "$data" of required type "BirthInput!" was not provided.'),
-        ('client', data_update_birth_empty, 'You do not have permission to perform this action'),
-        ('client', data_update_birth_invalid_id, 'You do not have permission to perform this action'),
-        ('client', data_update_birth_full, 'You do not have permission to perform this action'),
-        ('client_register', None, 'Variable "$data" of required type "BirthInput!" was not provided.'),
-        ('client_register', data_update_birth_empty, 'Please enter data'),
-        ('client_register', data_update_birth_invalid_id, 'Please enter a valid id'),
-        ('client_register', data_update_birth_full, None),
+        ('client', {**id_none, 'data': {**person_id_valid, **data_full}}, 'Variable "$id" of required type "ID!" was not provided.'),
+        ('client', {**id_valid, 'data': {**person_id_none, **data_full}}, 'In field "personId": Expected "ID!", found null.'),
+        ('client', {**id_invalid, 'data': {**person_id_valid, **data_full}}, 'You do not have permission to perform this action'),
+        ('client', {**id_valid, 'data': {**person_id_invalid, **data_full}}, 'You do not have permission to perform this action'),
+        ('client', {**id_valid, 'data': {**person_id_valid, **data_empty}}, 'You do not have permission to perform this action'),
+        ('client', {**id_valid, 'data': {**person_id_valid, **data_full}}, 'You do not have permission to perform this action'),
+
+        ('client_register', {**id_none, 'data': {**person_id_valid, **data_full}}, 'Variable "$id" of required type "ID!" was not provided.'),
+        ('client_register', {**id_valid, 'data': {**person_id_none, **data_full}}, 'In field "personId": Expected "ID!", found null.'),
+        ('client_register', {**id_invalid, 'data': {**person_id_valid, **data_full}}, 'Please enter a valid id'),
+        ('client_register', {**id_valid, 'data': {**person_id_invalid, **data_full}}, 'Please enter a valid person_id'),
+        ('client_register', {**id_valid, 'data': {**person_id_valid, **data_empty}}, None),
+        ('client_register', {**id_valid, 'data': {**person_id_valid, **data_full}}, None),
     ])
     def test_update_birth_mutation(self, client_fixture, data, errors, request):
-        
+
+        mixer.blend(Person, pk=12)
         mixer.blend(Birth, pk=12, submitter=mixer.blend(get_user_model()))
 
         client = request.getfixturevalue(client_fixture)
@@ -236,7 +210,7 @@ class TestBirthAPI:
         else:
             assert result.errors
             assert len(result.errors) == 1
-            assert result.errors[0].message == errors
+            assert errors in result.errors[0].message
 
 
     @pytest.mark.usefixtures('create_obj_for_search')

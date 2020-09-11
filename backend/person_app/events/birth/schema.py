@@ -8,8 +8,7 @@ import json
 
 from common.schema import (
     CreateMutation, 
-    CreateObjectMutation, 
-    UpdateMutation, 
+    UpdateMutation,
     DeleteMutation,
 )
 from .models import Birth
@@ -44,20 +43,19 @@ class BirthType(
 
 class BirthInput(EventFieldInputTest):
 
-    # person_id = graphene.ID()
+    person_id = graphene.ID(required=True)
     gender = graphene.String()
     givname = graphene.String()
     surname = graphene.String()
 
 
-class CreateBirthMutation(CreateObjectMutation):
+class CreateBirthMutation(CreateMutation):
 
     obj = Birth
 
     birth = graphene.Field(BirthType)
 
     class Arguments:
-        person_id = graphene.ID(required=True)
         data = BirthInput(required=True)
 
 
@@ -67,7 +65,7 @@ class UpdateBirthMutation(UpdateMutation):
 
     birth = graphene.Field(BirthType)
 
-    class Arguments:
+    class Arguments(UpdateMutation.Arguments):
         data = BirthInput(required=True)
 
 

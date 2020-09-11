@@ -6,8 +6,8 @@ from graphene_django import DjangoObjectType
 from graphql_jwt.decorators import login_required
 
 from common.schema import (
-    CreateObjectMutation, 
-    UpdateObjectMutation, 
+    CreateMutation, 
+    UpdateMutation, 
     DeleteMutation,
 )
 from core.schema import ObjectFieldInput
@@ -26,7 +26,7 @@ class PersonInput(ObjectFieldInput):
     user = graphene.ID()
 
 
-class CreatePersonMutation(CreateObjectMutation):
+class CreatePersonMutation(CreateMutation):
 
     obj = Person
 
@@ -36,13 +36,13 @@ class CreatePersonMutation(CreateObjectMutation):
         data = PersonInput()
 
 
-class UpdatePersonMutation(UpdateObjectMutation):
+class UpdatePersonMutation(UpdateMutation):
 
     obj = Person
 
     person = graphene.Field(PersonType)
 
-    class Arguments(UpdateObjectMutation.Arguments):
+    class Arguments(UpdateMutation.Arguments):
         data = PersonInput(required=True)
 
 

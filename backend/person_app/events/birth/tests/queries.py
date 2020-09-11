@@ -16,8 +16,8 @@ query Birth($id: ID!){
 '''
 
 CREATE_BIRTH = '''
-mutation CreateBirth($personId: ID!, $data: BirthInput!){
-    createBirth(personId: $personId, data: $data){
+mutation CreateBirth($data: BirthInput!){
+    createBirth(data: $data){
         birth{
             id
         }
@@ -26,8 +26,8 @@ mutation CreateBirth($personId: ID!, $data: BirthInput!){
 '''
 
 UPDATE_BIRTH = '''
-mutation UpdateBirth($data: BirthInput!){
-    updateBirth(data: $data){
+mutation UpdateBirth($id: ID!, $data: BirthInput!){
+    updateBirth(id: $id, data: $data){
         birth{
             id
         }

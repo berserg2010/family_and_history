@@ -17,6 +17,7 @@ check_data = [
     ('client', {'id': None}, 'Variable "$id" of required type "ID!" was not provided.'),
     ('client', {'id': 21}, 'You do not have permission to perform this action'),
     ('client', {'id': 12}, 'You do not have permission to perform this action'),
+    
     ('client_register', {'id': None}, 'Variable "$id" of required type "ID!" was not provided.'),
     ('client_register', {'id': 21}, 'Please enter a valid id'),
     ('client_register', {'id': 12}, None),
@@ -72,9 +73,10 @@ class TestPersonAPI:
     
     @pytest.mark.parametrize('client_fixture, data, errors', [
         ('client', None, 'You do not have permission to perform this action'),
-        ('client', {'data': {'note': ':('}}, 'You do not have permission to perform this action'),
+        ('client', {'data': {'note': ':)'}}, 'You do not have permission to perform this action'),
+        
         ('client_register', None, None),
-        ('client_register', {'data': {'note': ':('}}, None),
+        ('client_register', {'data': {'note': ':)'}}, None),
     ])
     def test_create_person_mutation(self, client_fixture, data, errors, request):
 
@@ -99,19 +101,20 @@ class TestPersonAPI:
         ('client', None, 'Variable "$id" of required type "ID!" was not provided.'),
         ('client', {'id': None, 'data': {'note': ''}}, 'Variable "$id" of required type "ID!" was not provided.'),
         ('client', {'id': 21, 'data': None}, 'Variable "$data" of required type "PersonInput!" was not provided.'),
-        ('client', {'id': 21, 'data': {'note': ':('}}, 'You do not have permission to perform this action'),
+        ('client', {'id': 21, 'data': {'note': ':)'}}, 'You do not have permission to perform this action'),
         ('client', {'id': 12, 'data': {'note': ''}}, 'You do not have permission to perform this action'),
-        ('client', {'id': 12, 'data': {'note': ':('}}, 'You do not have permission to perform this action'),
+        ('client', {'id': 12, 'data': {'note': ':)'}}, 'You do not have permission to perform this action'),
+        
         ('client_register', None, 'Variable "$id" of required type "ID!" was not provided.'),
         ('client_register', {'id': None, 'data': {'note': ''}}, 'Variable "$id" of required type "ID!" was not provided.'),
         ('client_register', {'id': 21, 'data': None}, 'Variable "$data" of required type "PersonInput!" was not provided.'),
-        ('client_register', {'id': 21, 'data': {'note': ':('}}, 'Please enter a valid id'),
+        ('client_register', {'id': 21, 'data': {'note': ':)'}}, 'Please enter a valid id'),
         ('client_register', {'id': 12, 'data': {'note': ''}}, None),
-        ('client_register', {'id': 12, 'data': {'note': ':('}}, None),
+        ('client_register', {'id': 12, 'data': {'note': ':)'}}, None),
     ])
     def test_update_person_mutation(self, client_fixture, data, errors, request):
 
-        mixer.blend(Person, pk=12, submitter=mixer.blend(get_user_model()), changer=mixer.blend(get_user_model()))
+        mixer.blend(Person, pk=12, note=':(', submitter=mixer.blend(get_user_model()), changer=mixer.blend(get_user_model()))
 
         client = request.getfixturevalue(client_fixture)
         result = client.execute(query=queries.UPDATE_PERSON, variables=data)
