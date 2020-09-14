@@ -13,17 +13,6 @@ from . import queries
 pytestmark = pytest.mark.django_db
 
 
-check_data = [
-    ('client', {'id': None}, 'Variable "$id" of required type "ID!" was not provided.'),
-    ('client', {'id': 21}, 'You do not have permission to perform this action'),
-    ('client', {'id': 12}, 'You do not have permission to perform this action'),
-    
-    ('client_register', {'id': None}, 'Variable "$id" of required type "ID!" was not provided.'),
-    ('client_register', {'id': 21}, 'Please enter a valid id'),
-    ('client_register', {'id': 12}, None),
-]
-
-
 def test_person_type():
     instance = schema.PersonType()
     assert instance
@@ -54,7 +43,15 @@ class TestPersonAPI:
 
 
     @pytest.mark.parametrize('schema, query', [('PERSON', 'person'), ('DELETE_PERSON', 'deletePerson')])
-    @pytest.mark.parametrize('client_fixture, data, errors', check_data)
+    @pytest.mark.parametrize('client_fixture, data, errors', [
+        ('client', {'id': None}, 'Variable "$id" of required type "ID!" was not provided.'),
+        ('client', {'id': 21}, 'You do not have permission to perform this action'),
+        ('client', {'id': 12}, 'You do not have permission to perform this action'),
+        
+        ('client_register', {'id': None}, 'Variable "$id" of required type "ID!" was not provided.'),
+        ('client_register', {'id': 21}, 'Please enter a valid id'),
+        ('client_register', {'id': 12}, None),
+    ])
     def test_get_person_and_delete_person_mutation(self, schema, query, client_fixture, data, errors, request):
 
         mixer.blend(Person, pk=12)
