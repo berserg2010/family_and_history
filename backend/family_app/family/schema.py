@@ -1,91 +1,60 @@
+from django.contrib.auth import get_user_model
+from django.core.exceptions import ObjectDoesNotExist
+from graphql import GraphQLError
 import graphene
 from graphene_django import DjangoObjectType
-from django.contrib.auth import get_user_model
-import json
+from graphql_jwt.decorators import login_required
 
-from person_app.models import Birth
-from person_app.events.birth.schema import BirthType
 from .models import Family, Child
+from person_app.models import Birth
+from core.schema import ObjectFieldInput
+from common.schema import (
+    CreateMutation, 
+    UpdateMutation, 
+    DeleteMutation,
+)
+from person_app.events.birth.schema import BirthType
 
 
 # Family
 class FamilyType(DjangoObjectType):
+
     class Meta:
         model = Family
 
 
-class FamilyInput(graphene.InputObjectType):
-    id = graphene.ID()
-    note = graphene.String()
+class FamilyInput(ObjectFieldInput):
+    pass
 
 
-class SaveFamilyMutation(graphene.Mutation):
-    status = graphene.Int()
-    formErrors = graphene.String()
+class CreateFamilyMutation(CreateMutation):
+
+    obj = Family
+
     family = graphene.Field(FamilyType)
 
     class Arguments:
         data = FamilyInput()
 
-    def mutate(self, info, data=None, **kwargs):
-        if not info.context.user.is_authenticated:
-            return SaveFamilyMutation(status=403)
 
-        if info.context.user:
-            user = info.context.user
-        else:
-            user = None
+class UpdateFamilyMutation(UpdateMutation):
 
-        if data.get('id') and Family.objects.filter(pk=data.get('id')):
-            family = Family.objects.get(pk=data.get('id'))
-            family.note = data.get('note')
-            family.changer = user
-            family.save()
-        else:
-            family = Family.objects.create(
-                note=data.get('note'),
-                submitter=user,
-            )
+    obj = Family
 
-        return SaveFamilyMutation(
-            status=200,
-            family=family,
-        )
+    family = graphene.Field(FamilyType)
+
+    class Arguments(UpdateMutation.Arguments):
+        data = FamilyInput(required=True)
 
 
-class DeleteFamilyMutation(graphene.Mutation):
-    status = graphene.Int()
-    formErrors = graphene.String()
-    id = graphene.ID()
+class DeleteFamilyMutation(DeleteMutation):
 
-    class Arguments:
-        id = graphene.ID(required=True)
-
-    def mutate(self, info, **kwargs):
-        if not info.context.user.is_authenticated:
-            return DeleteFamilyMutation(status=403)
-
-        id = kwargs.get('id')
-
-        if id is None:
-            return DeleteFamilyMutation(
-                status=400,
-                formErrors=json.dumps(
-                    {'id': ['Please enter an id']}
-                )
-            )
-
-        if Family.objects.filter(pk=id).exists():
-            Family.objects.get(pk=id).delete()
-
-        return DeleteFamilyMutation(
-            status=200,
-            id=id,
-        )
+    obj = Family
 
 
 # Child
 class ChildType(DjangoObjectType):
+
     family = graphene.Field(FamilyType)
     birth = graphene.Field(BirthType)
 
@@ -98,103 +67,53 @@ class ChildType(DjangoObjectType):
 
 
 class ChildInput(graphene.InputObjectType):
+
     id = graphene.ID()
-    idFamily = graphene.ID()
-    idBirth = graphene.ID()
+    familyId = graphene.ID()
+    birthId = graphene.ID()
     reltofath = graphene.String()
     reltomoth = graphene.String()
     childnbrfath = graphene.Int()
     childnbrmoth = graphene.Int()
 
 
-class SaveChildMutation(graphene.Mutation):
-    status = graphene.Int()
-    formErrors = graphene.String()
+class CreateChildMutation(CreateMutation):
+
+    obj = Child
+
     child = graphene.Field(ChildType)
 
     class Arguments:
         data = ChildInput()
 
-    def mutate(self, info, data=None, **kwargs):
-        if not info.context.user.is_authenticated:
-            return SaveChildMutation(status=403)
 
-        # if info.context.user:
-        #     user = info.context.user
-        # else:
-        #     user = None
+class UpdateChildMutation(UpdateMutation):
 
-        id = data.get('id')
+    obj = Child
 
-        if id and Child.objects.filter(pk=id):
-            child = Child.objects.get(pk=id)
-            child.family = data.get('idFamily')
-            child.birth = data.get('idBirth')
-            # child.changer = user
-        else:
-            child = Child.objects.create(
-                family=data.get('idFamily'),
-                birth=data.get('idBirth'),
-                # submitter=user,
-            )
+    child = graphene.Field(ChildType)
 
-        child.reltofath = data.get('reltofath')
-        child.reltomoth = data.get('reltomoth')
-        child.childnbrfath = data.get('childnbrfath')
-        child.childnbrmoth = data.get('childnbrmoth')
-        # child.changer = user
-        child.save()
-
-        return SaveChildMutation(
-            status=200,
-            child=child,
-        )
+    class Arguments(UpdateMutation.Arguments):
+        data = ChildInput(required=True)
 
 
-class DeleteChildMutation(graphene.Mutation):
-    status = graphene.Int()
-    formErrors = graphene.String()
-    id = graphene.ID()
+class DeleteChildMutation(DeleteMutation):
 
-    class Arguments:
-        id = graphene.ID(required=True)
-
-    def mutate(self, info, **kwargs):
-        if not info.context.user.is_authenticated:
-            return DeleteChildMutation(status=403)
-
-        id = kwargs.get('id')
-
-        if id is None:
-            return DeleteChildMutation(
-                status=400,
-                formErrors=json.dumps(
-                    {'id': ['Please enter an id']}
-                )
-            )
-
-        if Child.objects.filter(pk=id).exists():
-            Child.objects.get(pk=id).delete()
-
-        return DeleteChildMutation(
-            status=200,
-            id=id,
-        )
+    obj = Child
 
 
 class Query(graphene.ObjectType):
-    all_family = graphene.List(
-        FamilyType,
-    )
+
+    all_families = graphene.List(FamilyType)
 
     family = graphene.Field(
         FamilyType,
         id=graphene.ID(),
     )
 
-    all_child = graphene.List(
+    all_children = graphene.List(
         ChildType,
-        idFamily=graphene.ID()
+        familyId=graphene.ID(),
     )
 
     child = graphene.Field(
@@ -202,28 +121,41 @@ class Query(graphene.ObjectType):
         id=graphene.ID(),
     )
 
-    # @login_required
-    def resolve_all_family(self, info, **kwargs):
+
+    @login_required
+    def resolve_all_families(self, info):
         return Family.objects.all().order_by('-changed')
 
-    def resolve_family(self, info, **kwargs):
-        id = kwargs.get('id')
-        return Family.objects.get(pk=id)
 
-    def resolve_all_child(self, info, **kwargs):
-        id_family = kwargs.get('idFamily')
-        if id_family:
-            return Child.objects.filter(_family=id_family)
-        else:
+    @login_required
+    def resolve_family(self, info, id):
+
+        try:
+            return Family.objects.get(pk=id)
+        except ObjectDoesNotExist:
+            raise GraphQLError('Please enter a valid id')
+
+
+    @login_required
+    def resolve_all_children(self, info, family_id=None):
+        
+        if family_id is None:
             return Child.objects.all()
-
-    def resolve_child(self, info, **kwargs):
-        id = kwargs.get('id')
+        else:
+            return Child.objects.filter(_family=family_id)
+    
+    
+    @login_required
+    def resolve_child(self, info, id):
         return Child.objects.get(pk=id)
 
 
 class Mutation(graphene.ObjectType):
-    save_family = SaveFamilyMutation.Field()
+
+    create_family = CreateFamilyMutation.Field()
+    update_family = UpdateFamilyMutation.Field()
     delete_family = DeleteFamilyMutation.Field()
-    save_child = SaveChildMutation.Field()
+
+    create_child = CreateChildMutation.Field()
+    update_child = UpdateChildMutation.Field()
     delete_child = DeleteChildMutation.Field()

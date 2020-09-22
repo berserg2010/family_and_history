@@ -8,6 +8,7 @@ from person_app.models import Birth
 
 
 class Family(ObjectField):
+    
     child = models.ManyToManyField(
         Birth,
         through='Child',
@@ -15,6 +16,7 @@ class Family(ObjectField):
 
 
 class Child(models.Model):
+
     _family = models.ForeignKey(
         Family,
         related_name='%(class)s_family_set',

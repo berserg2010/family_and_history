@@ -1,16 +1,16 @@
 import pytest
 from mixer.backend.django import mixer
 from graphql_jwt.testcases import JSONWebTokenClient
+from django.contrib.auth import get_user_model
 
 from abc import ABC
 
-from django.contrib.auth import get_user_model
 from django.contrib.auth.models import AnonymousUser
 
 from person_app.models import Birth
 from family_app.family.models import Family, Child
 from family_app.events.marriage.models import Marriage
-from family_app.family import schema
+from family_app.family.schema import FamilyType, ChildType
 from . import queries
 
 
@@ -18,82 +18,127 @@ pytestmark = pytest.mark.django_db
 
 
 def test_family_type():
-    instance = schema.FamilyType()
+    instance = FamilyType()
     assert instance
 
 
 def test_child_type():
-    instance = schema.ChildType()
+    instance = ChildType()
     assert instance
 
 
-class BaseClass(ABC):
+@pytest.mark.usefixtures('create_superuser')
+class TestFamilyAPI:
 
-    def test_all_family(self):
-        mixer.blend(Family)
-        mixer.blend(Family)
-        result = self.client.execute(query=queries.ALL_FAMILY)
-        assert len(result.data.get('allFamily')) == 2, 'Should return all family'
+    # @pytest.mark.parametrize('client_fixture, errors', [
+    #     ('client', 'You do not have permission to perform this action'),
+    #     ('client_register', None),
+    # ])
+    # def test_get_all_families(self, client_fixture, errors, request):
+
+    #     mixer.blend(Family)
+    #     mixer.blend(Family)
+
+    #     client = request.getfixturevalue(client_fixture)
+    #     result = client.execute(query=queries.ALL_FAMILY)
+
+    #     if client_fixture == 'client':
+    #         assert result.errors
+    #         assert len(result.errors) == 1
+    #         assert result.errors[0].message == errors
+    #     else:
+    #         assert not result.errors
+    #         assert len(result.data.get('allFamily')) == 2
+    
+
+    # @pytest.mark.parametrize('schema, query', [('FAMILY', 'family'), ('DELETE_FAMILY', 'deleteFamily')])
+    # @pytest.mark.parametrize('client_fixture, data, errors', [
+    #     ('client', {'id': None}, 'Variable "$id" of required type "ID!" was not provided.'),
+    #     ('client', {'id': 21}, 'You do not have permission to perform this action'),
+    #     ('client', {'id': 12}, 'You do not have permission to perform this action'),
+        
+    #     ('client_register', {'id': None}, 'Variable "$id" of required type "ID!" was not provided.'),
+    #     ('client_register', {'id': 21}, 'Please enter a valid id'),
+    #     ('client_register', {'id': 12}, None),
+    # ])
+    # def test_get_family_and_delete_family_mutation(self, schema, query, client_fixture, data, errors, request):
+
+    #     mixer.blend(Family, pk=12)
+        
+    #     client = request.getfixturevalue(client_fixture)
+    #     result = client.execute(query=getattr(queries, schema), variables=data)
+
+    #     if client_fixture == 'client_register' and data.get('id') == 12:
+    #         assert not result.errors
+    #         assert result.data.get(query)['id'] == data.get('id') or str(data.get('id'))
+    #     else:
+    #         assert result.errors
+    #         assert len(result.errors) == 1
+    #         assert result.errors[0].message == errors
+    
+
+    # @pytest.mark.parametrize('client_fixture, data, errors', [
+    #     ('client', None, 'You do not have permission to perform this action'),
+    #     ('client', {'data': {'note': ':)'}}, 'You do not have permission to perform this action'),
+        
+    #     ('client_register', None, None),
+    #     ('client_register', {'data': {'note': ':)'}}, None),
+    # ])
+    # def test_create_family_mutation(self, client_fixture, data, errors, request):
+
+    #     client = request.getfixturevalue(client_fixture)
+    #     result = client.execute(query=queries.CREATE_FAMILY, variables=data)
+
+    #     family_id = result.data is not None and result.data.get('createFamily') and result.data.get('createFamily')['family']['id']
+
+    #     if client_fixture == 'client_register' and family_id:
+    #         assert not result.errors
+    #         person = Family.objects.get(pk=family_id)
+    #         assert person.note == (data.get('data')['note'] if data else '')
+    #         assert person.submitter
+    #         assert person.changer
+    #     else:
+    #         assert result.errors
+    #         assert len(result.errors) == 1
+    #         assert result.errors[0].message == errors
 
 
-    def test_family(self):
-        family = mixer.blend(Family)
-        result = self.client.execute(
-            query=queries.FAMILY,
-            variables={'id': family.pk}
-        )
-        assert not result.errors
-        assert result.data.get('family')['id'] == str(family.pk)
+    @pytest.mark.parametrize('client_fixture, data, errors', [
+        ('client', None, 'Variable "$id" of required type "ID!" was not provided.'),
+        ('client', {'id': None, 'data': {'note': ''}}, 'Variable "$id" of required type "ID!" was not provided.'),
+        ('client', {'id': 21, 'data': None}, 'Variable "$data" of required type "FamilyInput!" was not provided.'),
+        ('client', {'id': 21, 'data': {'note': ':)'}}, 'You do not have permission to perform this action'),
+        ('client', {'id': 12, 'data': {'note': ''}}, 'You do not have permission to perform this action'),
+        ('client', {'id': 12, 'data': {'note': ':)'}}, 'You do not have permission to perform this action'),
+        
+        ('client_register', None, 'Variable "$id" of required type "ID!" was not provided.'),
+        ('client_register', {'id': None, 'data': {'note': ''}}, 'Variable "$id" of required type "ID!" was not provided.'),
+        ('client_register', {'id': 21, 'data': None}, 'Variable "$data" of required type "FamilyInput!" was not provided.'),
+        ('client_register', {'id': 21, 'data': {'note': ':)'}}, 'Please enter a valid id'),
+        ('client_register', {'id': 12, 'data': {'note': ''}}, None),
+        ('client_register', {'id': 12, 'data': {'note': ':)'}}, None),
+    ])
+    def test_update_family_mutation(self, client_fixture, data, errors, request):
 
+        mixer.blend(Family, pk=12, note=':(', submitter=mixer.blend(get_user_model()), changer=mixer.blend(get_user_model()))
 
-    def test_save_family_mutation(self):
-        note = [[None, ':)'], [1, ':(']]
+        client = request.getfixturevalue(client_fixture)
+        result = client.execute(query=queries.UPDATE_FAMILY, variables=data)
 
-        for i in note:
-            VARIABLE = {
-                "data": {
-                    "id": i[0],
-                    "note": i[1]
-                },
-            }
-
-            result = self.client.execute(
-                query=queries.SAVE_FAMILY,
-                variables=VARIABLE,
-            )
+        if client_fixture == 'client_register' and errors is None:
             assert not result.errors
-
-            if not self.user.is_authenticated:
-                assert result.data.get('saveFamily')['status'] == 403, 'Should return 403 if user is not logged in'
-            else:
-                assert result.data.get('saveFamily')['status'] == 200, 'Should return 200 if mutation is successful'
-                family_id = int(result.data.get('saveFamily')['family']['id'])
-                assert family_id == 1, 'Should create new person'
-                family = Family.objects.get(pk=family_id)
-                assert family.note == VARIABLE.get('data')['note']
-
-
-    def test_delete_family_mutation(self):
-        marriage = mixer.blend(Marriage)
-        assert Family.objects.all().count() == 1
-        family = Family.objects.get(pk=marriage.pk)
-
-        if not self.user.is_authenticated:
-            result = self.client.execute(query=queries.DELETE_FAMILY, variables={'id': family.pk})
-            assert not result.errors
-            assert Family.objects.all().count() == 1
-            assert result.data.get('deleteFamily')['status'] == 403, 'Should return 403 if user is not logged in'
+            family = Family.objects.get(pk=12)
+            assert family.note == (data.get('data')['note'] if data else '')
+            assert family.submitter
+            assert family.changer
         else:
-            result = self.client.execute(query=queries.DELETE_FAMILY)
             assert result.errors
-            assert Family.objects.all().count() == 1
+            assert len(result.errors) == 1
+            assert result.errors[0].message == errors
 
-            result = self.client.execute(query=queries.DELETE_FAMILY, variables={'id': family.pk})
-            assert not result.errors
-            assert result.data.get('deleteFamily')['status'] == 200, 'Should return 200 if mutation is successful'
-            assert Family.objects.all().count() == 0
-            assert Marriage.objects.all().count() == 0
 
+@pytest.mark.skip()
+class BaseClass(ABC):
 
     def test_all_child(self):
         mixer.blend(Child)

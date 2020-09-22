@@ -15,15 +15,19 @@ query Family($id: ID!){
 }
 '''
 
-SAVE_FAMILY = '''
-mutation CreateFamily(
-    $data: FamilyInput
-){
-    saveFamily(
-        data: $data
-    ){
-        status
-        formErrors
+CREATE_FAMILY = '''
+mutation CreateFamily($data: FamilyInput){
+    createFamily(data: $data){
+        family{
+            id
+        }
+    }
+}
+'''
+
+UPDATE_FAMILY = '''
+mutation UpdateFamily($id: ID!, $data: FamilyInput!){
+    updateFamily(id: $id, data: $data){
         family{
             id
         }
@@ -34,11 +38,11 @@ mutation CreateFamily(
 DELETE_FAMILY = '''
 mutation DeleteFamily($id: ID!){
     deleteFamily(id: $id){
-        status
         id
     }
 }
 '''
+
 
 # CHILD
 ALL_CHILD = '''
@@ -57,15 +61,19 @@ query Child($id: ID!){
 }
 '''
 
-SAVE_CHILD = '''
-mutation CreateChild(
-    $data: ChildInput
-){
-    saveChild(
-        data: $data
-    ){
-        status
-        formErrors
+CREATE_CHILD = '''
+mutation CreateChild($data: ChildInput){
+    createChild(data: $data){
+        child{
+            id
+        }
+    }
+}
+'''
+
+UPDATE_CHILD = '''
+mutation UpdateChild($id: ID!, $data: ChildInput!){
+    updateChild(id: $id, data: $data){
         child{
             id
         }
@@ -76,7 +84,6 @@ mutation CreateChild(
 DELETE_CHILD = '''
 mutation DeleteChild($id: ID!){
     deleteChild(id: $id){
-        status
         id
     }
 }

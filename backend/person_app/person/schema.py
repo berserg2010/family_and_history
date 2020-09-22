@@ -5,13 +5,13 @@ import graphene
 from graphene_django import DjangoObjectType
 from graphql_jwt.decorators import login_required
 
+from .models import Person
+from core.schema import ObjectFieldInput
 from common.schema import (
     CreateMutation, 
     UpdateMutation, 
     DeleteMutation,
 )
-from core.schema import ObjectFieldInput
-from .models import Person
 
 
 class PersonType(DjangoObjectType):
@@ -89,6 +89,7 @@ class Query(graphene.ObjectType):
 
 
 class Mutation(graphene.ObjectType):
+    
     create_person = CreatePersonMutation.Field()
     update_person = UpdatePersonMutation.Field()
     delete_person = DeletePersonMutation.Field()
