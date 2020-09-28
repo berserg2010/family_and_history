@@ -1,3 +1,5 @@
+
+
 def all_obj(query: str) -> str:
     return f'''
         query {query.capitalize()}{{
@@ -9,7 +11,6 @@ def all_obj(query: str) -> str:
 
 
 def obj(query: str) -> str:
-
     q: str = 'mutation' if query.startswith('delete') else 'query'
 
     return f'''
@@ -22,7 +23,6 @@ def obj(query: str) -> str:
 
 
 def create_obj(query: str) -> str:
-
     obj: str = query[len('create'):]
 
     return f'''
@@ -36,59 +36,15 @@ def create_obj(query: str) -> str:
     '''
 
 
+def update_obj(query: str) -> str:
+    obj: str = query[len('update'):]
 
-# PERSON
-ALL_PERSONS = '''
-query AllPersons{
-    allPersons{
-        id        
-    }
-}
-'''
-
-PERSON = '''
-query Person($id: ID!){
-    person(id: $id){
-        id
-    }
-}
-'''
-
-CREATE_PERSON = '''
-mutation CreatePerson($data: PersonInput){
-    createPerson(data: $data){
-        person{
-            id
-        }
-    }
-}
-'''
-
-UPDATE_PERSON = '''
-mutation UpdatePerson($id: ID!, $data: PersonInput!){
-    updatePerson(id: $id, data: $data){
-        person{
-            id
-        }
-    }
-}
-'''
-
-DELETE_PERSON = '''
-mutation DeletePerson($id: ID!){
-    deletePerson(id: $id){
-        id
-    }
-}
-'''
-
-SEARCH_PERSON = '''
-query SearchPerson($searchTerm: String){
-    searchPerson(searchTerm: $searchTerm){
-        id
-        birth{
-            surname
-        }
-    }
-}
-'''
+    return f'''
+        mutation {query.capitalize()}($id: ID!, $data: {obj}Input!){{
+            {query}(id: $id, data: $data){{
+                {obj.lower()}{{
+                    id
+                }}
+            }}
+        }}
+    '''

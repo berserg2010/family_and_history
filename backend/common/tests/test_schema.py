@@ -88,3 +88,38 @@ class TestObjApi:
             assert result.errors
             assert len(result.errors) == 1
             assert result.errors[0].message == errors
+
+
+    @pytest.mark.parametrize('obj, query', [(Person, 'updatePerson'), (Family, 'updateFamily')])
+    @pytest.mark.parametrize('client_fixture, data, errors', [
+        ('client', None, 'Variable "$id" of required type "ID!" was not provided.'),
+        ('client', {'id': None, 'data': {'note': ''}}, 'Variable "$id" of required type "ID!" was not provided.'),
+        ('client', {'id': 21, 'data': None}, 'Variable "$data" of required type'),
+        ('client', {'id': 21, 'data': {'note': ':)'}}, 'You do not have permission to perform this action'),
+        ('client', {'id': 12, 'data': {'note': ''}}, 'You do not have permission to perform this action'),
+        ('client', {'id': 12, 'data': {'note': ':)'}}, 'You do not have permission to perform this action'),
+        
+        ('client_register', None, 'Variable "$id" of required type "ID!" was not provided.'),
+        ('client_register', {'id': None, 'data': {'note': ''}}, 'Variable "$id" of required type "ID!" was not provided.'),
+        ('client_register', {'id': 21, 'data': None}, 'Variable "$data" of required type'),
+        ('client_register', {'id': 21, 'data': {'note': ':)'}}, 'Please enter a valid id'),
+        ('client_register', {'id': 12, 'data': {'note': ''}}, None),
+        ('client_register', {'id': 12, 'data': {'note': ':)'}}, None),
+    ])
+    def test_update_obj_mutation(self, obj, query, client_fixture, data, errors, request):
+
+        mixer.blend(obj, pk=12, note=':(', submitter=mixer.blend(get_user_model()), changer=mixer.blend(get_user_model()))
+
+        client = request.getfixturevalue(client_fixture)
+        result = client.execute(query=queries.update_obj(query), variables=data)
+
+        if client_fixture == 'client_register' and errors is None:
+            assert not result.errors
+            instance = obj.objects.get(pk=12)
+            assert instance.note == (data.get('data')['note'] if data else '')
+            assert instance.submitter
+            assert instance.changer
+        else:
+            assert result.errors
+            assert len(result.errors) == 1
+            assert errors in result.errors[0].message

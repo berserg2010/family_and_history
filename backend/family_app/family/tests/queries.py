@@ -1,47 +1,4 @@
 # FAMILY
-ALL_FAMILY = '''
-query AllFamily{
-    allFamily{
-        id        
-    }
-}
-'''
-
-FAMILY = '''
-query Family($id: ID!){
-    family(id: $id){
-        id
-    }
-}
-'''
-
-CREATE_FAMILY = '''
-mutation CreateFamily($data: FamilyInput){
-    createFamily(data: $data){
-        family{
-            id
-        }
-    }
-}
-'''
-
-UPDATE_FAMILY = '''
-mutation UpdateFamily($id: ID!, $data: FamilyInput!){
-    updateFamily(id: $id, data: $data){
-        family{
-            id
-        }
-    }
-}
-'''
-
-DELETE_FAMILY = '''
-mutation DeleteFamily($id: ID!){
-    deleteFamily(id: $id){
-        id
-    }
-}
-'''
 
 
 # CHILD
